@@ -141,6 +141,118 @@ def saveExcel():
 
 
 
+@app.route('/OpenRentRoll', methods=['GET'])
+def open_rent_roll():
+    """
+    Server-side file open flow.
+
+    """
+    try:
+        # Build the absolute path to the bundled rent roll file.
+        # current_working_directory is set at startup to the folder
+        # that contains app.py.
+        files_dir = os.path.join(current_working_directory, "Files")
+        file_path = os.path.join(files_dir, "rentRollDetails.xlsx")
+
+        if not os.path.exists(file_path):
+            error_payload = json.dumps(
+                {"error": f"Rent roll file not found: {file_path}"}
+            )
+            return Response(
+                error_payload, status=404, mimetype='application/json'
+            )
+
+        # Read the file as bytes and hand them to the C# Open process.
+        with open(file_path, 'rb') as f:
+            stream_data = f.read()
+
+        # spreadEditor.Open returns the workbook as a JSON string
+        # produced by Syncfusion.EJ2.Spreadsheet.SheetOpen.ProcessWorkBook.
+        result = spreadEditor.Open(stream_data)
+
+        # Send the JSON workbook back to the client.
+        return Response(result, mimetype='application/json')
+
+    except Exception as e:
+        import traceback
+        error_msg = (
+            f"Error opening rent roll: {str(e)}\n{traceback.format_exc()}"
+        )
+        print(error_msg)
+        error_payload = json.dumps({"error": error_msg})
+        return Response(
+            error_payload, status=500, mimetype='application/json'
+        )
+
+
+@app.route('/SaveRentRoll', methods=['POST'])
+def save_rent_roll():
+    """
+    Save the rent roll by replacing the existing rentRollDetails.xlsx file.
+    Instead of downloading the file, this saves it back to the Files folder.
+    """
+    try:
+        # Extract parameters from form data
+        json_data = request.form.get('JSONData', '')
+        save_type = request.form.get('saveType', 'Xlsx')  # Default to Xlsx
+        file_name = request.form.get('fileName', 'rentRollDetails')  # rentRollDetails
+        
+        # Extract PDF layout settings if provided
+        pdf_layout_settings = request.form.get('pdfLayoutSettings', '{}')
+        
+        # Create SaveSettings object
+        save_settings = SaveSettings()
+        save_settings.JSONData = json_data
+        # Convert string to SaveType enum
+        save_settings.SaveType = Enum.Parse(SaveType, save_type)
+        save_settings.FileName = file_name
+        save_settings.PdfLayoutSettings = pdf_layout_settings
+        
+        # Call the Save method from SpreadsheetEditor class
+        file_stream = spreadEditor.Save(save_settings)
+        
+        # Convert .NET MemoryStream to bytes
+        file_stream.Seek(0, SeekOrigin.Begin)  # Seek to beginning
+        stream_bytes = file_stream.ToArray()  # Convert to byte array
+        
+        # Convert .NET byte array to Python bytes
+        # Use bytearray to handle the .NET array properly
+        python_bytes = bytes(bytearray(stream_bytes))
+        file_stream.Dispose()  # Clean up the stream
+        
+        # Build the path to the Files folder and save the file there
+        files_dir = os.path.join(current_working_directory, "Files")
+        
+        # Ensure the Files directory exists
+        if not os.path.exists(files_dir):
+            os.makedirs(files_dir)
+        
+        # Construct the file path with the appropriate extension
+        extension = f".{save_type.lower()}"
+        file_path = os.path.join(files_dir, f"{file_name}{extension}")
+        
+        # Write the bytes to the file (replaces existing file if it exists)
+        with open(file_path, 'wb') as f:
+            f.write(python_bytes)
+        
+        # Return success response
+        response_payload = json.dumps({
+            "success": True,
+            "message": f"File saved successfully to {file_path}",
+            "filePath": file_path
+        })
+        return Response(response_payload, status=200, mimetype='application/json')
+
+    except Exception as e:
+        import traceback
+        error_msg = f"Error saving rent roll: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        error_payload = json.dumps({"error": error_msg})
+        return Response(
+            error_payload, status=500, mimetype='application/json'
+        )
+
+
 @app.route("/")
 def home():
     return "Flask Web API for SpreadsheetEditor!"
