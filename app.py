@@ -5,7 +5,11 @@ import clr #import clr from pythonnet
 import os
 from io import BytesIO
 
-app = Flask(__name__)
+app = Flask(
+__name__,
+static_folder='frontend/dist',
+static_url_path=''
+)
 
 # ---- Minimal CORS + large-file support ----
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024 # 500 MB
