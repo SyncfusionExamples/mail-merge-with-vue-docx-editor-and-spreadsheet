@@ -1,5 +1,5 @@
 <template>
-  <div class="wrapper">
+  <div class="ts-spreadsheet-wrapper">
     <ejs-spreadsheet
       ref="spreadsheet"
       :openUrl="openUrl"
@@ -15,6 +15,7 @@
 import { SpreadsheetComponent as EjsSpreadsheet } from "@syncfusion/ej2-vue-spreadsheet";
 
 export default {
+  name: "SpreadsheetComponent",
   components: {
     "ejs-spreadsheet": EjsSpreadsheet,
   },
@@ -77,43 +78,67 @@ export default {
     },
     saveRentRoll() {
       var spreadsheet = this.$refs.spreadsheet;
-      
+
       // Use saveAsJson to get the proper workbook JSON format
       spreadsheet.saveAsJson({ ignoreValidation: true }).then((response) => {
         var formData = new FormData();
         formData.append(
-          'JSONData',
+          "JSONData",
           JSON.stringify(response.jsonObject.Workbook)
         );
-        formData.append('fileName', 'rentRollDetails');
-        formData.append('saveType', 'Xlsx');
-        formData.append('pdfLayoutSettings', JSON.stringify({ fitSheetOnOnePage: false, orientation: 'Portrait' }));
-        
+        // The save target is the SHARED Excel file the Spreadsheet
+        // and the DocumentEditor mail-merge both edit. The server
+        // ignores the fileName value and writes the canonical
+        // shared file (Files/Data/CRE_Appraisal_POC.xlsx) in place.
+        formData.append("fileName", "CRE_Appraisal_POC");
+        formData.append("saveType", "Xlsx");
+        formData.append(
+          "pdfLayoutSettings",
+          JSON.stringify({ fitSheetOnOnePage: false, orientation: "Portrait" })
+        );
+
         // Call the SaveRentRoll endpoint that replaces the existing file
         fetch("http://127.0.0.1:5000/SaveRentRoll", {
-          method: 'POST',
-          body: formData
+          method: "POST",
+          body: formData,
         })
           .then((response) => {
             if (!response.ok) {
-              throw new Error(`Failed to save rent roll: ${response.status}`);
+              throw new Error(`Failed to save shared data file: ${response.status}`);
             }
             return response.json();
           })
           .then((result) => {
-            console.log("Rent roll saved successfully:", result);
-            alert("Rent roll saved successfully!");
+            console.log("Shared data file saved successfully:", result);
+            alert("Shared data file saved successfully!");
           })
           .catch((err) => {
             console.error("SaveRentRoll failed:", err);
-            alert("Error saving rent roll: " + err.message);
+            alert("Error saving shared data file: " + err.message);
           });
       }).catch((err) => {
         console.error("Failed to serialize spreadsheet:", err);
-        alert("Error preparing rent roll for save: " + err.message);
+        alert("Error preparing shared data file for save: " + err.message);
       });
     },
   },
 };
 </script>
 
+<style>
+/* The spreadsheet must be allowed to fill its host container — Syncfusion
+   measures the parent. We give it an explicit, responsive size and reset
+   any extra margin that would push the toolbar off-screen. */
+.ts-spreadsheet-wrapper {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ts-spreadsheet-wrapper .e-spreadsheet {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 1 auto;
+}
+</style>

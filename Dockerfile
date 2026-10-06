@@ -31,4 +31,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 5000
 
+# ---------------------------------------------------------------------------
+# Runtime configuration
+# All keys live in appsettings.json (base) and appsettings.Development.json
+# (overlay, used when FLASK_ENV / app_env == "development"). Process-level
+# env vars override file values for container/CI deployments:
+#
+#   SYNCFUSION_LICENSE_KEY        → Syncfusion.LicenseKey
+#   AZURE_OPENAI_ENDPOINT         → AzureOpenAI.Endpoint
+#   AZURE_OPENAI_API_KEY          → AzureOpenAI.ApiKey
+#   AZURE_OPENAI_DEPLOYMENT       → AzureOpenAI.DeploymentName
+#   AZURE_OPENAI_API_VERSION      → AzureOpenAI.ApiVersion (default 2024-02-15-preview)
+# ---------------------------------------------------------------------------
+
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "600", "app:app"]
