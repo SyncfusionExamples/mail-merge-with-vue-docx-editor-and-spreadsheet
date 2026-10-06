@@ -80,17 +80,13 @@ body {
   background-color: #dc2626;
 }
 
-.spreadsheet-container {
-  flex: 1;
-  background-color: #ffffff;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+.spreadsheet-container.e-dialog .e-dlg-content {
+  padding-top: 0;
 }
 
 .wrapper {
-  min-height: 550px;
-  height: calc(100vh - 130px);
+  min-height: 400px;
+  height: calc(100vh - 134px);
 }
 
 .placeholder {

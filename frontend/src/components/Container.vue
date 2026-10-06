@@ -17,12 +17,11 @@
       ref="sheetDialog"
       :visible="showSpreadsheet"
       :showCloseIcon="true"
+      :cssClass="'spreadsheet-container'"
       :closeOnEscape="true"
       :width="'90%'"
-      :height="'80%'"
       :target="dialogTarget"
       :allowDragging="true"
-      :enableResize="true"
       @close="onDialogClose"
     >
       <div class="dialog-content">
