@@ -35,7 +35,7 @@ def add_cors_on_errors(resp):
 # get the current working directory
 current_working_directory = os.getcwd()
 # Load explicit DLLs from the publish folder (direct AddReference calls)
-publish_base = current_working_directory + "/.NET Standard Wrapper Library/SpreadsheetLibrary/bin/Release/netstandard2.0/publish/"
+publish_base = current_working_directory + "/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/netstandard2.0/publish/"
 
 
 clr.AddReference(publish_base + "Syncfusion.EJ2.Spreadsheet.dll")

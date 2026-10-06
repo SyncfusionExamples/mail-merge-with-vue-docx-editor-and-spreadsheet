@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "1osC9EcOrwU=",
+  "dgSpecHash": "9iycm1t70Uc=",
   "success": true,
-  "projectFilePath": "D:\\Works\\October\\Oct 6\\Web Service in Python\\.NET Standard Wrapper Library\\SpreadsheetLibrary\\SpreadsheetLibrary.csproj",
+  "projectFilePath": "D:\\Works\\October\\Oct 6\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\DeiraRajRajkumar\\.nuget\\packages\\bitmiracle.libtiff.net\\2.4.649\\bitmiracle.libtiff.net.2.4.649.nupkg.sha512",
     "C:\\Users\\DeiraRajRajkumar\\.nuget\\packages\\harfbuzzsharp\\14.2.1.1\\harfbuzzsharp.14.2.1.1.nupkg.sha512",

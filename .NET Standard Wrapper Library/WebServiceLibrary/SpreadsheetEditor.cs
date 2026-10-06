@@ -3,7 +3,7 @@ using Syncfusion.XlsIO;
 using System;
 using System.IO;
 
-namespace SpreadsheetLibrary
+namespace WebServiceLibrary
 {
     public class SpreadsheetEditor
     {

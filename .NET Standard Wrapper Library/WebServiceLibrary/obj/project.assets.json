@@ -5570,11 +5570,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Works\\October\\Oct 6\\Web Service in Python\\.NET Standard Wrapper Library\\SpreadsheetLibrary\\SpreadsheetLibrary.csproj",
-      "projectName": "SpreadsheetLibrary",
-      "projectPath": "D:\\Works\\October\\Oct 6\\Web Service in Python\\.NET Standard Wrapper Library\\SpreadsheetLibrary\\SpreadsheetLibrary.csproj",
+      "projectUniqueName": "D:\\Works\\October\\Oct 6\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
+      "projectName": "WebServiceLibrary",
+      "projectPath": "D:\\Works\\October\\Oct 6\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
       "packagesPath": "C:\\Users\\DeiraRajRajkumar\\.nuget\\packages\\",
-      "outputPath": "D:\\Works\\October\\Oct 6\\Web Service in Python\\.NET Standard Wrapper Library\\SpreadsheetLibrary\\obj\\",
+      "outputPath": "D:\\Works\\October\\Oct 6\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

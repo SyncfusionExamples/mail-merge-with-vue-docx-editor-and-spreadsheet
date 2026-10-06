@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SpreadsheetLibrary")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f2cf1c31a3ab25cf279e3d6bf2be907421f684ff")]
 [assembly: System.Reflection.AssemblyProductAttribute("SpreadsheetLibrary")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SpreadsheetLibrary")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

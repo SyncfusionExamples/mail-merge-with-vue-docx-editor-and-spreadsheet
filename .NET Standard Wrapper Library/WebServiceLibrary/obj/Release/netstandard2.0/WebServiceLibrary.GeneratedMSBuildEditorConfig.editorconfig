@@ -1,6 +1,6 @@
 is_global = true
-build_property.RootNamespace = SpreadsheetLibrary
-build_property.ProjectDir = d:\Works\October\Oct 6\Web Service in Python\.NET Standard Wrapper Library\SpreadsheetLibrary\
+build_property.RootNamespace = WebServiceLibrary
+build_property.ProjectDir = D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.CsWinRTUseWindowsUIXamlProjections = false
