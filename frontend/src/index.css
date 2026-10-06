@@ -1,4 +1,6 @@
 @import "../node_modules/@syncfusion/ej2-tailwind3-theme/styles/spreadsheet/index.css";
+@import "../node_modules/@syncfusion/ej2-tailwind3-theme/styles/document-editor/index.css";
+@import "../node_modules/@syncfusion/ej2-tailwind3-theme/styles/document-editor-container/index.css";
 /* =====================================================================
    Template Studio (Simple) — Vue 3
    No template list UI: the homepage is the document editor + merge

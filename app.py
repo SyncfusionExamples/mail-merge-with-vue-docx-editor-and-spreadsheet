@@ -144,6 +144,13 @@ _ASSEMBLY_NAMES = [
     "Syncfusion.SkiaSharpHelper.Portable",
     "Syncfusion.XlsIO.Portable",
     "Syncfusion.XlsIORenderer.Portable",
+    # Syncfusion's EJ2 Spreadsheet does a literal Assembly.Load on the
+    # ASP.NET Core 2.3 Mvc facade. These come from the .csproj's
+    # PackageReference entries and are published into the same folder
+    # by `dotnet publish` — load them before WebServiceLibrary so the
+    # SpreadsheetEditor's Save() path resolves them.
+    "Microsoft.AspNetCore.Mvc.Core",
+    "Microsoft.AspNetCore.Mvc.Abstractions",
     "WebServiceLibrary",
 ]
 

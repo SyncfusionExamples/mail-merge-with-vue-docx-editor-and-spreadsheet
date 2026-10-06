@@ -12,6 +12,18 @@
     <PackageReference Include="Syncfusion.EJ2.WordEditor.AspNet.Core" Version="35.1.37" />
     <PackageReference Include="Syncfusion.DocIO.Net.Core" Version="35.1.37" />
     <PackageReference Include="Syncfusion.DocIORenderer.Net.Core" Version="35.1.37" />
+    <!--
+      The Syncfusion EJ2 Spreadsheet assembly was originally built
+      against the ASP.NET Core 2.3 facade. When Syncfusion.EJ2.Spreadsheet
+      runs Workbook.Save (used by the Python /Save and /SaveRentRoll
+      endpoints) it does a literal Assembly.Load on
+      Microsoft.AspNetCore.Mvc.Core, Version=2.3.0.0, which the modern
+      .NET 8 BCL does not satisfy. Pin the 2.3.0 packages so NuGet
+      restores them and dotnet publish drops the DLLs into the
+      publish output — keeping every clone/rebuild reproducible.
+    -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.3.0" />
   </ItemGroup>
 
   <!--
