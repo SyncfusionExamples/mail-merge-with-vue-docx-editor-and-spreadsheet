@@ -1,0 +1,21 @@
+{
+  "name": "spreadsheet-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@syncfusion/ej2-tailwind3-theme": "^35.1.37",
+    "@syncfusion/ej2-vue-popups": "^35.1.37",
+    "@syncfusion/ej2-vue-spreadsheet": "^35.1.37",
+    "vue": "^3.5.42"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.3.0"
+  }
+}
