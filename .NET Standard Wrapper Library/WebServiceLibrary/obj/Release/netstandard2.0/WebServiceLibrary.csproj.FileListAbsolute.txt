@@ -1,0 +1,11 @@
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\netstandard2.0\WebServiceLibrary.deps.json
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\netstandard2.0\WebServiceLibrary.dll
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\netstandard2.0\WebServiceLibrary.pdb
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.csproj.AssemblyReference.cache
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.GeneratedMSBuildEditorConfig.editorconfig
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.AssemblyInfoInputs.cache
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.AssemblyInfo.cs
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.csproj.CoreCompileInputs.cache
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.sourcelink.json
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.dll
+D:\Works\October\Oct 6\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\netstandard2.0\WebServiceLibrary.pdb
