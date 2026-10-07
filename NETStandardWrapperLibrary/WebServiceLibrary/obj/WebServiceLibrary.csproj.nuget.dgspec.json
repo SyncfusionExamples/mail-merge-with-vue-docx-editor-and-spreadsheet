@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj": {}
+    "D:\\New folder\\New folder (3)\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj": {}
   },
   "projects": {
-    "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj": {
+    "D:\\New folder\\New folder (3)\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
+        "projectUniqueName": "D:\\New folder\\New folder (3)\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj",
         "projectName": "WebServiceLibrary",
-        "projectPath": "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
+        "projectPath": "D:\\New folder\\New folder (3)\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj",
         "packagesPath": "C:\\Users\\MohammedAffanSaqibHu\\.nuget\\packages\\",
-        "outputPath": "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\obj\\",
+        "outputPath": "D:\\New folder\\New folder (3)\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",

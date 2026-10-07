@@ -71,7 +71,7 @@ def add_cors_on_errors(resp):
 # ============================================================================
 # Filesystem layout
 # ----------------------------------------------------------------------------
-#   <cwd>/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net10.0/publish/
+#   <cwd>/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/
 #       Compiled .NET wrappers (Spreadsheet + DocumentEditor).
 #   <cwd>/Files/Templates/
 #       The .docx templates the DocumentEditor opens by default
@@ -88,7 +88,7 @@ def add_cors_on_errors(resp):
 current_working_directory = os.getcwd()
 publish_base = (
     current_working_directory
-    + "/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net10.0/publish/"
+    + "/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/"
 )
 files_root     = os.path.join(current_working_directory, "Files")
 templates_root = os.path.join(files_root, "Templates")
