@@ -7,14 +7,14 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- 2. Publish .NET wrapper ----
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dotnet
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet
 WORKDIR /src
 COPY "NETStandardWrapperLibrary/WebServiceLibrary/" ./
 RUN dotnet publish WebServiceLibrary.csproj -c Release
-# output: /src/bin/Release/netstandard2.0/publish/
+# output: /src/bin/Release/net10.0/publish/
 
 # ---- 3. Runtime ----
-FROM mcr.microsoft.com/dotnet/runtime:8.0
+FROM mcr.microsoft.com/dotnet/runtime:10.0
 
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -47,7 +47,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY Files ./Files
 COPY --from=frontend /fe/dist ./frontend/dist
-COPY --from=dotnet /src/bin/Release/netstandard2.0/publish "./NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/netstandard2.0/publish/"
+COPY --from=dotnet /src/bin/Release/net10.0/publish "./NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/"
 
 EXPOSE 5000
 

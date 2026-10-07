@@ -1,8 +1,18 @@
 from flask import Flask, json, request, Response, send_file
 from flask_cors import CORS #import CORS from flask_cors
 
-import clr #import clr from pythonnet
 import os
+import sys
+
+# Ensure CoreCLR is configured for pythonnet when running .NET 10
+os.environ.setdefault("PYTHONNET_RUNTIME", "coreclr")
+try:
+    import pythonnet
+    pythonnet.load("coreclr")
+except Exception:
+    pass
+
+import clr #import clr from pythonnet
 from io import BytesIO
 
 app = Flask(
@@ -34,40 +44,25 @@ def add_cors_on_errors(resp):
 
 # get the current working directory
 current_working_directory = os.getcwd()
-# Load explicit DLLs from the publish folder (direct AddReference calls)
-publish_base = current_working_directory + "/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/netstandard2.0/publish/"
+# Load DLLs from the publish folder
+publish_base = os.path.join(current_working_directory, "NETStandardWrapperLibrary", "WebServiceLibrary", "bin", "Release", "net10.0", "publish")
+if os.path.exists(publish_base) and publish_base not in sys.path:
+    sys.path.append(publish_base)
 
+# Add references to published DLLs
+if os.path.exists(publish_base):
+    for dll_file in sorted(os.listdir(publish_base)):
+        if dll_file.endswith(".dll"):
+            try:
+                clr.AddReference(os.path.join(publish_base, dll_file))
+            except Exception:
+                pass
 
-clr.AddReference(publish_base + "Syncfusion.EJ2.Spreadsheet.dll")
-clr.AddReference(publish_base + "BitMiracle.LibTiff.NET.dll")
-clr.AddReference(publish_base + "HarfBuzzSharp.dll")
-clr.AddReference(publish_base + "Microsoft.Bcl.AsyncInterfaces.dll")
-clr.AddReference(publish_base + "Newtonsoft.Json.dll")
-clr.AddReference(publish_base + "SkiaSharp.dll")
-clr.AddReference(publish_base + "SkiaSharp.HarfBuzz.dll")
-clr.AddReference(publish_base + "SpreadsheetLibrary.dll")
-clr.AddReference(publish_base + "Syncfusion.Compression.Portable.dll")
-clr.AddReference(publish_base + "Syncfusion.Licensing.dll")
-clr.AddReference(publish_base + "Syncfusion.MetafileRenderer.Portable.dll")
-clr.AddReference(publish_base + "Syncfusion.Pdf.Imaging.Portable.dll")
-clr.AddReference(publish_base + "Syncfusion.Pdf.Portable.dll")
-clr.AddReference(publish_base + "Syncfusion.SkiaSharpHelper.Portable.dll")
-clr.AddReference(publish_base + "Syncfusion.XlsIO.Portable.dll")
-clr.AddReference(publish_base + "Syncfusion.XlsIORenderer.Portable.dll")
-clr.AddReference(publish_base + "System.Buffers.dll")
-clr.AddReference(publish_base + "System.Memory.dll")
-clr.AddReference(publish_base + "System.Numerics.Vectors.dll")
-clr.AddReference(publish_base + "System.Runtime.CompilerServices.Unsafe.dll")
-clr.AddReference(publish_base + "System.Text.Encoding.CodePages.dll")
-clr.AddReference(publish_base + "System.Text.Encodings.Web.dll")
-clr.AddReference(publish_base + "System.Text.Json.dll")
-clr.AddReference(publish_base + "System.Threading.Tasks.Extensions.dll")
-clr.AddReference(publish_base + "Microsoft.AspNetCore.Mvc.Core.dll")
-clr.AddReference(publish_base + "Microsoft.AspNetCore.Mvc.Abstractions.dll")
-clr.AddReference(publish_base + "Microsoft.AspNetCore.Razor.dll")
-
-#import our SpreadsheetEditor class from our C# namespace SpreadsheetLibrary
-from SpreadsheetLibrary import SpreadsheetEditor
+#import our SpreadsheetEditor class from our C# namespace WebServiceLibrary
+try:
+    from WebServiceLibrary import SpreadsheetEditor
+except ImportError:
+    from SpreadsheetLibrary import SpreadsheetEditor
 from Syncfusion.EJ2.Spreadsheet import SaveSettings, SaveType
 from Syncfusion.Licensing import SyncfusionLicenseProvider
 from System import Enum
