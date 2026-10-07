@@ -88,10 +88,10 @@ Users can:
 ### Navigate to the .NET Wrapper Project
 
 ```bash
-cd .NET Standard Wrapper Library
+cd NETStandardWrapperLibrary
 ```
 
-### Build and Publish the .NET Standard Wrapper Library
+### Build and Publish the NETStandardWrapperLibrary
 
 ```bash
 dotnet build -c Release
