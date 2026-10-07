@@ -102,8 +102,10 @@ h1, h2, h3, h4 {
 .ts-viewer-body {
   flex: 1 1 auto;
   display: grid;
-  /* AI pane (left) | editor | merge fields (right) */
-  grid-template-columns: 300px 1fr 320px;
+  /* AI pane (left) | editor canvas. The right-rail merge-fields panel
+     was removed; the custom "Mail Merge" ribbon tab now drives
+     insertion from inside the editor itself. */
+  grid-template-columns: 300px 1fr;
   min-height: 0;
 }
 .ts-viewer-canvas {
@@ -118,12 +120,6 @@ h1, h2, h3, h4 {
   flex: 1 1 auto;
   min-height: 0;
   border: none;
-}
-.ts-viewer-canvas--drag-over {
-  outline: 2px dashed #3d5afe;
-  outline-offset: -6px;
-  background-color: rgba(61, 90, 254, 0.05);
-  transition: outline-color 0.12s, background-color 0.12s;
 }
 
 .ts-loading {
@@ -328,121 +324,6 @@ h1, h2, h3, h4 {
   cursor: not-allowed;
   background: #c7d0ff;
   border-color: #c7d0ff;
-}
-
-/* ---------- Merge fields panel ---------- */
-.ts-fields-panel {
-  background: #ffffff;
-  border-left: 1px solid #e5e7eb;
-  border-left: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-}
-.ts-fields-head {
-  padding: 16px;
-  border-bottom: 1px solid #eef0f3;
-}
-.ts-fields-head h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2330;
-  font-family: inherit;
-}
-.ts-fields-subtitle {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: #6b7280;
-}
-.ts-fields-groups {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 12px 16px;
-}
-.ts-field-chip-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.ts-field-chip-li {
-  list-style: none;
-  margin-bottom: 6px;
-  cursor: grab;
-}
-.ts-field-chip-li:active { cursor: grabbing; }
-.ts-field-chip {
-  width: 100%;
-  text-align: left;
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 6px;
-  cursor: pointer;
-  height: auto;
-  transition: border-color 0.12s, background 0.12s;
-  font-family: inherit;
-}
-.ts-field-chip:hover {
-  border-color: #3d5afe;
-  background: #f5f7ff;
-}
-.ts-field-chip-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1f2330;
-}
-.ts-empty {
-  padding: 16px 12px;
-  color: #9ca3af;
-  font-size: 13px;
-  text-align: center;
-}
-.ts-fields-foot {
-  border-top: 1px solid #eef0f3;
-  padding: 10px 12px 12px;
-  background: #fafbfc;
-  flex-shrink: 0;
-}
-.ts-fields-hint-foot {
-  margin: 0 0 8px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #6b7280;
-}
-.ts-btn-add-field {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: #3d5afe;
-  color: #ffffff;
-  border: 1px solid #3d5afe;
-  border-radius: 6px;
-  font: 500 13px 'Segoe UI', system-ui, sans-serif;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.ts-btn-add-field:hover { background: #3043e0; }
-.ts-drag-ghost {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  background: #3d5afe;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 999px;
-  box-shadow: 0 4px 12px rgba(61, 90, 254, 0.35);
-  white-space: nowrap;
-  pointer-events: none;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ---------- Modals (shared) ---------- */
@@ -720,3 +601,75 @@ h1, h2, h3, h4 {
   padding: 8px 0 0;
   flex: 0 0 auto;
 }
+
+/* ---------- Insert Merge Field dialog ---------- */
+.ts-insert-field-dialog .e-dlg-content {
+  padding: 12px 16px 0 !important;
+}
+.ts-insert-field-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 320px;
+}
+.ts-insert-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ts-insert-field-input.e-input,
+.ts-insert-field-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #1f2330;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.ts-insert-field-input:focus {
+  border-color: #3d5afe;
+  box-shadow: 0 0 0 2px rgba(61, 90, 254, 0.18);
+}
+.ts-insert-field-error {
+  margin: 4px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ts-insert-field-hint {
+  margin: 2px 0 0;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 1.4;
+}
+/* The EJ2 Dialog renders its `buttons` array into .e-footer-content.
+   Right-align the buttons and give them a bit of breathing room. */
+.ts-insert-field-dialog .e-footer-content {
+  padding: 8px 12px !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ts-insert-field-dialog .e-footer-content .e-btn {
+  margin: 0 !important;
+}
+@font-face {
+font-family: 'Font Mail merge icon';
+src:url(data:application/x-font-ttf;charset=utf-8;base64,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) format('truetype');
+font-weight: normal;
+font-style: normal;
+}
+[class^="sf-icon-"], [class*=" sf-icon-"] {
+font-family: 'Font Mail merge icon' !important;
+color: rgba(0, 0, 0, 0.54);
+font-weight: 600;
+font-size: 14px;
+}
+.sf-icon-InsertMergeField:before { content: "\e701"; }

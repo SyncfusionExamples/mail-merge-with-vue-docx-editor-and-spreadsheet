@@ -1,11 +1,14 @@
 <script setup>
 // Simplified Template Studio — Vue 3 (Composition API).
 // No template list UI: the homepage IS the document editor. On mount it
-// loads the default .docx from the ASP.NET Core service into a Syncfusion
-// DocumentEditor (Ribbon toolbar, always editable) and keeps every other
-// function: Save and Publish, Download, Preview with Data (mail merge),
-// and the Merge Fields side panel (click/drag insert + Add Field).
-import { computed, onMounted, provide, ref } from 'vue';
+// loads the default .docx from the Python wrapper service into a
+// Syncfusion DocumentEditor (Ribbon toolbar, always editable) and keeps
+// every other function: Save and Publish, Download, Export to PDF,
+// Preview with Data (mail merge), and the Smart AI Assist pane.
+//
+// Merge-field handling is now done via a custom "Mail Merge" ribbon
+// tab (see addMailMergeRibbon() below) instead of a right-rail panel.
+import { nextTick, onMounted, provide, ref } from 'vue';
 import {
   DocumentEditorContainerComponent,
   Toolbar,
@@ -23,12 +26,10 @@ import {
   exportDocumentToPdf,
   mailMergePreview,
   readBlobAsDataUrl,
-  fetchCommonMergeFields,
+  addCommonMergeField,
 } from './utils/studioStorage.js';
-import MergeFieldsPanel from './components/MergeFieldsPanel.vue';
 import SmartAIAssistPane from './components/SmartAIAssistPane.vue';
 import SpreadsheetComponent from './components/SpreadsheetComponent.vue';
-import { MERGE_FIELD_MIME, MERGE_FIELD_PAYLOAD_MIME } from './components/MergeFieldsPanelMime.js';
 
 // Vue 3 module registration for the DocumentEditorContainer (the
 // `.Inject()` static from the React package doesn't exist in ej2-vue —
@@ -64,6 +65,102 @@ function closeExcelEditor() {
   isExcelOpen.value = false;
 }
 
+// ---------------------------------------------------------------------------
+// Insert Merge Field dialog (custom Syncfusion DialogComponent).
+// Mirrors the ES5 sample: a modal dialog with a TextBox for the field
+// name and Insert / Cancel buttons in the footer. `pendingSave` controls
+// whether confirming the dialog also POSTs the new key to the common
+// catalog (Insert & Save) or only inserts the field (Insert).
+// ---------------------------------------------------------------------------
+const isInsertFieldOpen = ref(false);
+const insertFieldName = ref('');
+const insertFieldError = ref('');
+let pendingSave = false;     // not a ref — only the open()/confirm() path reads/writes it
+let pendingInputEl = null;   // the underlying <input id="field_text"> node, focused on open
+
+function openInsertFieldDialog({ save }) {
+  pendingSave = !!save;
+  insertFieldName.value = '';
+  insertFieldError.value = '';
+  isInsertFieldOpen.value = true;
+  // Focus the TextBox once the dialog has finished its open animation
+  // and the input is in the DOM. Mirrors the ES5 reference that clears
+  // and focuses `field_text` right after `insertFieldDialogObj.show()`.
+  nextTick(() => {
+    const el = document.getElementById('field_text');
+    if (el) {
+      pendingInputEl = el;
+      el.value = '';
+      el.focus();
+      el.select?.();
+    }
+  });
+}
+
+function closeInsertFieldDialog() {
+  isInsertFieldOpen.value = false;
+  pendingInputEl = null;
+}
+
+function onInsertFieldInput(ev) {
+  // Sync the v-model from the underlying <input> on each keystroke
+  // (we listen for the native 'input' event because the TextBox is
+  // styled as a plain input and we want the simplest data flow).
+  insertFieldName.value = ev?.target?.value ?? '';
+  if (insertFieldError.value) insertFieldError.value = '';
+}
+
+function confirmInsertField() {
+  const key = String(insertFieldName.value || '').trim();
+  const isValid = /^[A-Za-z][A-Za-z0-9]*$/.test(key);
+  if (!isValid) {
+    insertFieldError.value =
+      'Invalid field name. Use letters and digits only, starting with a letter.';
+    return;
+  }
+  const save = pendingSave;
+  closeInsertFieldDialog();
+  const de = getEditor();
+  if (!de) return;
+  // Put the field at the caret BEFORE the dialog is fully torn down so
+  // the editor still owns the focus (the ES5 sample calls
+  // `container.documentEditor.focusIn()` in `beforeOpen` for the same
+  // reason — but in the Vue version focusIn happens as part of
+  // insertField()).
+  insertField(key);
+  if (save) {
+    addCommonMergeField({ key }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn('[studio] could not persist merge field:', err);
+    });
+  }
+}
+
+// EJ2 Dialog `buttons` configuration — mirrors the ES5 reference's
+// `buttons: [{ click, buttonModel: { content, cssClass, isPrimary } }]`
+// array. The Dialog wrapper exposes `buttons` as a prop, which gets
+// passed straight through to the underlying `Dialog.buttons` API and
+// rendered in the dialog's footer. Note: using the EJ2 `buttons` API
+// (rather than a Vue `#footer` slot — which the DialogComponent does
+// not natively support) guarantees the footer actually renders.
+const insertFieldDialogButtons = [
+  {
+    click: () => confirmInsertField(),
+    buttonModel: {
+      content: 'Ok',
+      cssClass: 'e-flat e-primary',
+      isPrimary: true,
+    },
+  },
+  {
+    click: () => closeInsertFieldDialog(),
+    buttonModel: {
+      content: 'Cancel',
+      cssClass: 'e-flat',
+    },
+  },
+];
+
 // Called the moment the modal Syncfusion Dialog finishes opening. We
 // just log here — the SpreadsheetComponent's own `created` hook handles
 // loading rentRollDetails.xlsx from the Python service.
@@ -71,11 +168,6 @@ function onExcelDialogOpen() {
   // eslint-disable-next-line no-console
   console.log('[studio] Excel editor dialog opened');
 }
-
-// Merge-field state: doc-only MERGEFIELDs returned by ImportFileURL +
-// the server-side common (global) custom fields catalog.
-const documentMergeFields = ref([]);
-const commonFields = ref({});
 
 const docxUrl = absoluteDocxUrl(DEFAULT_TEMPLATE_DOCX);
 // Slug used as the Save FileName so a save overwrites the same .docx the
@@ -100,8 +192,7 @@ async function handleCreated() {
   de.restrictEditing = false;
   isLoading.value = true;
   try {
-    const { sfdt, mergeFields } = await fetchSfdtFromDocx({ url: docxUrl });
-    documentMergeFields.value = Array.isArray(mergeFields) ? mergeFields : [];
+    const { sfdt } = await fetchSfdtFromDocx({ url: docxUrl });
     de.open(sfdt);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -112,11 +203,81 @@ async function handleCreated() {
     isLoading.value = false;
     isLoadingDoc.value = false;
   }
+  // Mount the custom "Mail Merge" ribbon tab once the container (and
+  // its ribbon) is fully ready. The ribbon instance lives on the
+  // container's ej2Instances, not on the inner documentEditor.
+  await nextTick();
+  addMailMergeRibbon();
 }
 
-onMounted(async () => {
-  commonFields.value = await fetchCommonMergeFields();
-});
+// ---------------------------------------------------------------------------
+// Custom ribbon tab — "Mail Merge"
+// ---------------------------------------------------------------------------
+// Per the Syncfusion "Customize Ribbon" docs, programmatic tabs/buttons
+// are added via `container.ribbon.addTab(...)` and
+// `container.ribbon.addItem(...)`. We use a Button with a `clicked`
+// handler that prompts the user for a merge field name and inserts it
+// at the caret via the editor's `insertField` API.
+function addMailMergeRibbon() {
+  const inst = containerRef.value;
+  const ribbon = inst?.ej2Instances?.ribbon ?? inst?.ribbon;
+  if (!ribbon || typeof ribbon.addTab !== 'function') {
+    console.warn('[studio] ribbon.addTab not available; Mail Merge tab not added');
+    return;
+  }
+  if (ribbon.__tsMailMergeTabAdded) return;  // idempotent
+  ribbon.__tsMailMergeTabAdded = true;
+
+  // Open the custom "Insert Merge Field" dialog and (optionally) persist
+  // the new key to the server's common catalog on confirm. We don't
+  // call insertField() from the ribbon directly — the dialog's Insert
+  // button does that, after validating the entered name.
+  const openInsertField = () => {
+    if (!getEditor()) return;
+    openInsertFieldDialog({ save: false });
+  };
+  const openInsertFieldAndSave = () => {
+    if (!getEditor()) return;
+    openInsertFieldDialog({ save: true });
+  };
+
+  const tab = {
+    header: 'Mail Merge',
+    id: 'mail_merge_tab',
+    groups: [
+      {
+        header: 'Insert',
+        id: 'mail_merge_insert_group',
+        collections: [
+          {
+            items: [
+              {
+                type: 'Button',
+                buttonSettings: {
+                  content: 'Insert Merge Field',
+                  iconCss: 'sf-icon-InsertMergeField',
+                  clicked: openInsertField,
+                },
+              },
+              {
+                type: 'Button',
+                buttonSettings: {
+                  content: 'Insert & Save to Library',
+                  iconCss: 'e-icons e-save',
+                  clicked: openInsertFieldAndSave,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  // Add the new tab at the end of the ribbon (after Insert, Review,
+  // View, etc.) so it doesn't disturb the built-in ordering.
+  ribbon.addTab(tab);
+}
 
 // contentChange: mark dirty only on real user edits (not programmatic open).
 function handleContentChange() {
@@ -156,11 +317,6 @@ function insertField(key) {
   const fieldCode = `MERGEFIELD  ${fieldName}  \\* MERGEFORMAT `;
   de.focusIn();
   de.editor.insertField(fieldCode, `«${fieldName}»`);
-}
-
-// ----- Custom-field add callback from MergeFieldsPanel -----
-function handleCustomFieldAdded(info) {
-  commonFields.value = { ...commonFields.value, [info.key]: info.field };
 }
 
 // ----- Save flow -----
@@ -284,122 +440,6 @@ async function handlePreviewWithExcel() {
     isMerging.value = false;
   }
 }
-
-// ----- Drag-and-drop from MergeFieldsPanel into the editor canvas -----
-const isDragOver = ref(false);
-let dragDepth = 0;
-
-function isMergeFieldDrag(dt) {
-  if (!dt || !dt.types) return false;
-  const types = Array.from(dt.types);
-  return types.includes(MERGE_FIELD_MIME) || types.includes(MERGE_FIELD_PAYLOAD_MIME);
-}
-
-function readMergeFieldKey(dt) {
-  if (!dt) return null;
-  try {
-    const envelope = dt.getData(MERGE_FIELD_PAYLOAD_MIME);
-    if (envelope) {
-      const parsed = JSON.parse(envelope);
-      if (parsed && parsed.source === 'merge-fields-panel' && typeof parsed.key === 'string') {
-        return parsed.key;
-      }
-    }
-  } catch { /* fall through */ }
-  const dedicated = dt.getData(MERGE_FIELD_MIME);
-  if (dedicated) return dedicated;
-  if (isMergeFieldDrag(dt)) return dt.getData('text/plain');
-  return null;
-}
-
-function handleCanvasDragEnter(e) {
-  if (!isMergeFieldDrag(e.dataTransfer)) return;
-  e.preventDefault();
-  dragDepth += 1;
-  isDragOver.value = true;
-}
-
-function handleCanvasDragOver(e) {
-  if (!isMergeFieldDrag(e.dataTransfer)) return;
-  e.preventDefault();
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-}
-
-function handleCanvasDragLeave() {
-  dragDepth = Math.max(0, dragDepth - 1);
-  if (dragDepth === 0) isDragOver.value = false;
-}
-
-function handleCanvasDrop(e) {
-  if (!isMergeFieldDrag(e.dataTransfer)) return;
-  e.preventDefault();
-  e.stopPropagation();
-  dragDepth = 0;
-  isDragOver.value = false;
-  const key = readMergeFieldKey(e.dataTransfer);
-  if (!key) return;
-  const de = getEditor();
-  try {
-    if (de && typeof de.focusIn === 'function') de.focusIn();
-    // Best-effort caret placement at the drop point; if it fails we fall
-    // back to the editor's existing caret via insertField below.
-    if (de && de.selection && typeof de.selection.select === 'function') {
-      const rootEl = containerRef.value?.$el;
-      const dropX = e.clientX;
-      const dropY = e.clientY;
-      let viewer = null;
-      if (rootEl) {
-        const candidates = [
-          '.e-de-viewer', '.e-de-page-content', '.e-de-page-container',
-          '.e-de-scroll-container', '.e-documenteditor',
-          '.e-documenteditor-content', '.e-documenteditor-container',
-        ];
-        for (const c of candidates) {
-          const el = rootEl.querySelector ? rootEl.querySelector(c) : null;
-          if (!el || !el.getBoundingClientRect) continue;
-          const r = el.getBoundingClientRect();
-          if (r.width > 0 && r.height > 0
-            && dropX >= r.left && dropX <= r.right
-            && dropY >= r.top && dropY <= r.bottom) {
-            viewer = el;
-            break;
-          }
-        }
-        if (!viewer) viewer = rootEl;
-      }
-      if (viewer && viewer.getBoundingClientRect) {
-        const rect = viewer.getBoundingClientRect();
-        const localX = dropX - rect.left;
-        const localY = dropY - rect.top;
-        let sLeft = 0;
-        let sTop = 0;
-        try {
-          if (typeof viewer.scrollLeft === 'number' && viewer.scrollLeft !== 0) {
-            sLeft = viewer.scrollLeft;
-          } else {
-            let p = viewer.parentElement;
-            while (p && !(p.scrollLeft || p.scrollTop)) p = p.parentElement;
-            if (p) { sLeft = p.scrollLeft || 0; sTop = p.scrollTop || 0; }
-          }
-        } catch { /* ignore */ }
-        de.selection.select({
-          x: Math.max(0, localX + sLeft),
-          y: Math.max(0, localY + sTop),
-          extend: false,
-        });
-      }
-    }
-  } catch (selErr) {
-    // eslint-disable-next-line no-console
-    console.warn('Drop caret placement failed; using existing caret:', selErr);
-  }
-  try {
-    insertField(key);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Drop-insert failed:', err);
-  }
-}
 </script>
 
 <template>
@@ -453,18 +493,13 @@ function handleCanvasDrop(e) {
         :getSelectionText="getSelectionText"
         :insertText="insertText"
       />
-      <div
-        class="ts-viewer-canvas"
-        :class="{ 'ts-viewer-canvas--drag-over': isDragOver }"
-        @dragenter="handleCanvasDragEnter"
-        @dragover="handleCanvasDragOver"
-        @dragleave="handleCanvasDragLeave"
-        @drop="handleCanvasDrop"
-      >
+      <div class="ts-viewer-canvas">
         <p v-if="isLoadingDoc" class="ts-loading">Loading document…</p>
         <p v-if="loadError" class="ts-load-error">{{ loadError }}</p>
         <!-- Syncfusion DocumentEditorContainer — built-in Word-like ribbon,
-             always in Edit mode, loads the default .docx on `created`. -->
+             always in Edit mode, loads the default .docx on `created`.
+             The custom "Mail Merge" ribbon tab is added by
+             addMailMergeRibbon() in the @created handler. -->
         <DocumentEditorContainerComponent
           ref="containerRef"
           height="100%"
@@ -477,13 +512,6 @@ function handleCanvasDrop(e) {
           @contentChange="handleContentChange"
         />
       </div>
-
-      <MergeFieldsPanel
-        :commonFieldsProp="commonFields"
-        :documentMergeFields="documentMergeFields"
-        @insert-field="insertField"
-        @custom-field-added="handleCustomFieldAdded"
-      />
     </div>
 
     <!-- Merge error toast (replaces the old JSON-upload modal). -->
@@ -508,7 +536,7 @@ function handleCanvasDrop(e) {
       :width="'90%'"
       :height="'90%'"
       :target="'.ts-app'"
-      :header="'Edit Excel — CRE_Appraisal_POC.xlsx (shared with Mail Merge)'"
+      :header="'Edit Excel'"
       :allowDragging="true"
       :animationSettings="{ effect: 'Fade', duration: 200, delay: 0 }"
       cssClass="ts-excel-dialog"
@@ -529,6 +557,53 @@ function handleCanvasDrop(e) {
           >Back to Document</button>
         </div>
       </template>
+    </DialogComponent>
+
+    <!-- Insert Merge Field dialog — opens from the "Mail Merge" ribbon
+         tab. Modeled on the ES5 reference: a focused TextBox for the
+         field name plus Insert / Cancel footer buttons. v-show keeps
+         the dialog mounted between opens so we avoid the Syncfusion
+         double-destroy race (same reason the Excel dialog above uses
+         v-show). -->
+    <DialogComponent
+      v-show="isInsertFieldOpen"
+      ref="insertFieldDialog"
+      :visible="isInsertFieldOpen"
+      :isModal="true"
+      :showCloseIcon="true"
+      :closeOnEscape="true"
+      :width="'380px'"
+      cssClass="ts-insert-field-dialog"
+      :target="'.ts-app'"
+      :header="'Insert Merge Field'"
+      :allowDragging="true"
+      :animationSettings="{ effect: 'Fade', duration: 150, delay: 0 }"
+      :close="closeInsertFieldDialog"
+      :buttons="insertFieldDialogButtons"
+    >
+      <div class="ts-insert-field-body">
+        <label for="field_text" class="ts-insert-field-label">
+          Field name
+        </label>
+        <input
+          id="field_text"
+          type="text"
+          class="e-input ts-insert-field-input"
+          placeholder="e.g. Property Name"
+          :value="insertFieldName"
+          autocomplete="off"
+          spellcheck="false"
+          @input="onInsertFieldInput"
+          @keydown.enter.prevent="confirmInsertField"
+          @keydown.esc.prevent="closeInsertFieldDialog"
+        />
+        <p v-if="insertFieldError" class="ts-insert-field-error">
+          {{ insertFieldError }}
+        </p>
+        <p class="ts-insert-field-hint">
+          Letters and digits only, must start with a letter.
+        </p>
+      </div>
     </DialogComponent>
   </div>
 </template>

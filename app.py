@@ -490,16 +490,50 @@ def save_rent_roll():
 def de_import():
     """
     Mirror of DocumentEditorController.Import — accept a multipart
-    "file" upload, return the SFDT JSON string.
+    "files" upload, return the SFDT JSON string.
+
+    The Syncfusion DocumentEditor container hits this endpoint when the
+    user picks a file via the toolbar's Open dialog. Per the Syncfusion
+    docs the field name is `files` (plural):
+
+        let formData = new FormData();
+        formData.append('files', file);
+        xhr.send(formData);
+
+    On the client side the response is fed straight to
+    `documenteditor.open(responseText)`, so:
+      * Empty body  -> the editor opens a blank document silently.
+      * `null` body -> the editor treats it as "user cancelled" and
+                       does NOT call open(); the page keeps its
+                       current document.
+      * SFDT JSON   -> the editor opens the parsed document.
+
+    We therefore return the JSON literal `null` for the "no file
+    uploaded" case (toolbar Open -> user cancelled the picker) and the
+    serialized SFDT for a real upload. The endpoint also tolerates the
+    singular `file` field name (some Syncfusion samples use it) for
+    backward compatibility.
     """
     try:
-        if "file" not in request.files:
-            return Response("", status=400, mimetype="text/plain")
-        f = request.files["file"]
-        file_bytes = f.read()
+        # Accept both `files` (the official Syncfusion field) and `file`
+        # (some samples / older versions). The C# controller checks
+        # `data.Files.Count == 0`, which is the equivalent of "no file
+        # in either field".
+        uploaded = None
+        for field_name in ("files", "file"):
+            if field_name in request.files:
+                candidate = request.files[field_name]
+                if candidate and candidate.filename:
+                    uploaded = candidate
+                    break
+        if uploaded is None:
+            # No file uploaded (user cancelled the picker, or a probe).
+            # Return JSON `null` so the Syncfusion client aborts cleanly.
+            return Response("null", status=200, mimetype="application/json")
+        file_bytes = uploaded.read()
         if not file_bytes:
-            return Response("", status=400, mimetype="text/plain")
-        result = docEditor.ImportFromBytes(file_bytes, f.filename or "Document.docx")
+            return Response("null", status=200, mimetype="application/json")
+        result = docEditor.ImportFromBytes(file_bytes, uploaded.filename or "Document.docx")
         return Response(result, status=200, mimetype="application/json")
     except Exception as e:
         return Response(
