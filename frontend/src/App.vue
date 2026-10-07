@@ -490,20 +490,24 @@ function handleCanvasDrop(e) {
     <p v-if="mergeError" class="ts-load-error" role="alert">{{ mergeError }}</p>
 
     <!-- Edit Excel modal: hosts the SpreadsheetComponent (which loads
-         rentRollDetails.xlsx from the Python service on `created`). The
-         "Back" button in the dialog header is the only way to close it,
-         so the user always returns to the document editor in the same
-         state. We use v-if (not v-show) so the spreadsheet is
-         freshly created every time the dialog opens. -->
+         the shared CRE_Appraisal_POC.xlsx from the Python service on
+         `created`). The Syncfusion Dialog controls open/close via the
+         `:visible` prop; we drive it from a ref so we can use v-show
+         (instead of v-if) to keep the Dialog + Spreadsheet mounted
+         across open/close cycles. Using v-if on a Syncfusion dialog
+         that owns a Syncfusion component inside it causes a double-
+         destroy race during teardown (the child gets unmounted by
+         Vue before the parent dialog has finished its own destroy). -->
     <DialogComponent
-      v-if="isExcelOpen"
+      v-show="isExcelOpen"
       ref="excelDialog"
-      :visible="true"
+      :visible="isExcelOpen"
       :isModal="true"
       :showCloseIcon="true"
       :closeOnEscape="true"
       :width="'90%'"
       :height="'90%'"
+      :target="'.ts-app'"
       :header="'Edit Excel — CRE_Appraisal_POC.xlsx (shared with Mail Merge)'"
       :allowDragging="true"
       :animationSettings="{ effect: 'Fade', duration: 200, delay: 0 }"
@@ -512,7 +516,7 @@ function handleCanvasDrop(e) {
       :close="closeExcelEditor"
     >
       <div class="ts-excel-dialog-body">
-        <SpreadsheetComponent />
+        <SpreadsheetComponent v-if="isExcelOpen" />
       </div>
       <!-- Footer with a "Back" button — explicit way to return to the
            document editor without using the close icon. -->

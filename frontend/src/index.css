@@ -36,6 +36,10 @@ h1, h2, h3, h4 {
   overflow: hidden;
   background: #f4f5f8;
   color: #1f2330;
+  /* Anchor the Edit-Excel modal (DialogComponent :target='.ts-app') so
+     position:absolute on the dialog outer wrap resolves against the
+     app shell rather than the body. */
+  position: relative;
 }
 
 /* ---------- Viewer header ---------- */
@@ -666,16 +670,32 @@ h1, h2, h3, h4 {
 
 /* ---------- Edit Excel modal (Syncfusion Dialog hosting
                 SpreadsheetComponent) ----------
-   The Syncfusion Dialog gives the body a fixed max-height with its own
-   scrollbar; the SpreadsheetComponent fills whatever vertical space is
-   left between the header and the footer. */
+   The Syncfusion Dialog wrap (.e-dialog) is positioned absolutely with
+   the width/height we set on the <DialogComponent>. We promote it to
+   a flex column so the header and footer take their natural height
+   and .e-dlg-content can grow to fill the rest, then cascade that
+   down to the .ts-excel-dialog-body and the Syncfusion Spreadsheet. */
+.ts-excel-dialog.e-dialog,
+.ts-excel-dialog .e-dlg-container {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0;
+}
+.ts-excel-dialog .e-dlg-header-content,
+.ts-excel-dialog .e-footer-content {
+  flex: 0 0 auto;
+}
 .ts-excel-dialog .e-dlg-content {
   padding: 0 !important;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  /* Belt-and-braces: the wrap's height is the dialog's content height
+     (90% of viewport, minus header + footer), so 100% here fills it. */
+  height: 100%;
+  box-sizing: border-box;
 }
 .ts-excel-dialog-body {
   flex: 1 1 auto;
@@ -684,9 +704,19 @@ h1, h2, h3, h4 {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
+}
+.ts-excel-dialog-body > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .ts-excel-dialog-footer {
   display: flex;
   justify-content: flex-end;
   padding: 8px 0 0;
+  flex: 0 0 auto;
 }
