@@ -262,9 +262,9 @@ namespace WebServiceLibrary
                 using (WDocument document = new WDocument(
                     new MemoryStream(data), WFormatType.Docx))
                 {
-                    document.MailMerge.RemoveEmptyGroup = true;
+                    document.MailMerge.RemoveEmptyGroup = false;
                     document.MailMerge.RemoveEmptyParagraphs = true;
-                    document.MailMerge.ClearFields = true;
+                    document.MailMerge.ClearFields = false;
 
                     if (string.IsNullOrWhiteSpace(mailMergeDataJson))
                     {
@@ -283,9 +283,24 @@ namespace WebServiceLibrary
                                 excelEngine.Excel.Workbooks.Open(excelPath);
                             try
                             {
-                                DataTable mergeTable = BuildMergeTable(workbook.Worksheets[0]);
-                                if (mergeTable.Rows.Count > 0)
-                                    document.MailMerge.Execute(mergeTable);
+                                foreach (IWorksheet worksheet in workbook.Worksheets)
+                                {
+                                    worksheet.EnableSheetCalculations();
+                                    
+                                    DataTable mergeTable = worksheet.ExportDataTable(
+                                                worksheet.UsedRange,
+                                                ExcelExportDataTableOptions.ColumnNames |
+                                                ExcelExportDataTableOptions.ComputedFormulaValues);
+
+                                    if (mergeTable.Rows.Count == 1)
+                                    {
+                                        document.MailMerge.Execute(mergeTable);
+                                    }
+                                    else
+                                    {
+                                        document.MailMerge.ExecuteGroup(mergeTable);
+                                    }
+                                }
                             }
                             finally
                             {
