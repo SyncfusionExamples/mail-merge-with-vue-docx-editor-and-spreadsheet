@@ -18,9 +18,9 @@ from io import BytesIO
 # pythonnet only honours PYTHONNET_RUNTIME at module-import time, so we
 # set it before the first clr import. We also pin DOTNET_ROOT (in case
 # the dev box has no `dotnet` on PATH, e.g. a Windows service install)
-# and DOTNET_ROLL_FORWARD=LatestMajor so the wrapper (built for net8.0)
-# will load even when the highest installed runtime is 9 or 10 (the host
-# picks the highest matching version that's >= 8.0).
+# and DOTNET_ROLL_FORWARD=LatestMajor so the wrapper (built for net10.0)
+# will load even when a newer runtime is installed (the host picks the
+# highest matching version that's >= 10.0).
 # ============================================================================
 _os.environ.setdefault("PYTHONNET_RUNTIME", "coreclr")
 if not _os.environ.get("DOTNET_ROOT"):
@@ -71,7 +71,7 @@ def add_cors_on_errors(resp):
 # ============================================================================
 # Filesystem layout
 # ----------------------------------------------------------------------------
-#   <cwd>/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net8.0/publish/
+#   <cwd>/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net10.0/publish/
 #       Compiled .NET wrappers (Spreadsheet + DocumentEditor).
 #   <cwd>/Files/Templates/
 #       The .docx templates the DocumentEditor opens by default
@@ -88,7 +88,7 @@ def add_cors_on_errors(resp):
 current_working_directory = os.getcwd()
 publish_base = (
     current_working_directory
-    + "/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net8.0/publish/"
+    + "/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net10.0/publish/"
 )
 files_root     = os.path.join(current_working_directory, "Files")
 templates_root = os.path.join(files_root, "Templates")

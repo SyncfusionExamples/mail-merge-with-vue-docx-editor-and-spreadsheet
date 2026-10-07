@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +29,7 @@
   <!--
     Force the publish output to include a runtimeconfig.json so the
     .NET host (and pythonnet's coreclr runtime) knows this DLL is
-    net8.0 and not a netstandard facade. Without this, pythonnet tries
+    net10.0 and not a netstandard facade. Without this, pythonnet tries
     to resolve System.IO.Stream against System.Runtime v4.0.0.0 and
     fails with TypeLoadException on every type that has Stream in its
     signature (e.g. SpreadsheetEditor.Save).
