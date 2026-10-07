@@ -167,16 +167,23 @@ from System import Enum
 from System.IO import SeekOrigin
 
 # ---------------------------------------------------------------------------
+# Register the Syncfusion license
+SYNCFUSION_LICENSE_KEY = "Enter your license key here";
+if SYNCFUSION_LICENSE_KEY:
+    SyncfusionLicenseProvider.RegisterLicense(SYNCFUSION_LICENSE_KEY)
+else:
+    print(
+        "[app] SYNCFUSION_LICENSE_KEY is not set; Syncfusion controls "
+        "will show an evaluation watermark. Set the env var to remove it.",
+        flush=True,
+    )
+
+# ---------------------------------------------------------------------------
 # Configuration
 # ----------
-# All runtime config lives in appsettings.json (with appsettings.Development.json
-# overlaid in dev), the same convention the legacy .NET project used.
-# Process-level environment variables override file values, so containers
-# and CI can still inject keys without touching the JSON.
 #
 #     appsettings.json              — base settings (committed to git, OK to leave empty)
 #     appsettings.Development.json  — dev secrets (recommended: gitignored)
-#     SYNCFUSION_LICENSE_KEY        — env-var override
 #     AZURE_OPENAI_ENDPOINT         — env-var override
 #     AZURE_OPENAI_API_KEY          — env-var override
 #     AZURE_OPENAI_DEPLOYMENT       — env-var override
@@ -214,9 +221,6 @@ def _load_settings():
             except Exception as e:
                 print(f"[app] warning: failed to read {path}: {e}", flush=True)
     # Env-var overlay (only for non-empty values).
-    env_overlay = {}
-    if _os.environ.get("SYNCFUSION_LICENSE_KEY"):
-        env_overlay.setdefault("Syncfusion", {})["LicenseKey"] = _os.environ["SYNCFUSION_LICENSE_KEY"]
     ai_overlay = {}
     for src, dst in (
         ("AZURE_OPENAI_ENDPOINT",   "Endpoint"),
@@ -227,8 +231,8 @@ def _load_settings():
         if _os.environ.get(src):
             ai_overlay[dst] = _os.environ[src]
     if ai_overlay:
-        env_overlay["AzureOpenAI"] = ai_overlay
-    settings = _deep_merge(settings, env_overlay)
+        env_overlay = {"AzureOpenAI": ai_overlay}
+        settings = _deep_merge(settings, env_overlay)
     return settings
 
 _settings = _load_settings()
@@ -236,9 +240,6 @@ _settings = _load_settings()
 # Convenience accessors (used throughout the rest of this file).
 # Each string value is stripped so a stray space in the JSON (e.g.
 # `"Endpoint": " https://...`) doesn't break the Azure SDK call.
-SYNCFUSION_LICENSE_KEY = (
-    (_settings.get("Syncfusion", {}).get("LicenseKey", "") or "").strip()
-)
 _ai = _settings.get("AzureOpenAI", {})
 AI_ENDPOINT    = (_ai.get("Endpoint", "")         or "").strip()
 AI_API_KEY     = (_ai.get("ApiKey", "")           or "").strip()
@@ -246,19 +247,6 @@ AI_DEPLOYMENT  = (_ai.get("DeploymentName", "")   or "").strip()
 AI_API_VERSION = (
     (_ai.get("ApiVersion", "2024-02-15-preview") or "2024-02-15-preview").strip()
 )
-
-# Register Syncfusion license. If SYNCFUSION_LICENSE_KEY isn't provided
-# the controls render an evaluation watermark — they still work, they
-# just look ugly in the browser.
-if SYNCFUSION_LICENSE_KEY:
-    SyncfusionLicenseProvider.RegisterLicense(SYNCFUSION_LICENSE_KEY)
-else:
-    print(
-        "[app] Syncfusion license key is not set; Syncfusion controls "
-        "will show an evaluation watermark. Add it to appsettings.json "
-        "under Syncfusion.LicenseKey to remove it.",
-        flush=True,
-    )
 
 spreadEditor = SpreadsheetEditor()   # Spreadsheet wrapper (existing)
 docEditor    = DocumentEditor()      # DocumentEditor wrapper (new)
