@@ -17,6 +17,7 @@ import {
   cleanAiOutput,
   htmlToPlain,
 } from '../ai/prompts.js';
+import { systemClipboard } from '../utils/studioStorage.js';
 
 // Parent (App.vue) exposes the editor accessors via props.
 const props = defineProps({
@@ -210,19 +211,125 @@ function onSend() {
 // the caret; for selection intents it REPLACES the selected text.
 // For document-level intents (Summarize / Rephrase / Fix grammar
 // fired without a real selection) we just insert at the caret.
-function insertReply(msg) {
+//
+// Formatting is preserved end-to-end: we POST the AI's HTML reply to
+// the server's /SystemClipboard endpoint, get SFDT back, and use
+// `editor.editor.paste(sfdtString)` to insert it. This is the same
+// code path the AI rewrite dialog uses and is the Syncfusion-
+// recommended way to insert pre-formatted content (editor.insertText
+// drops every style). If the server paste fails for any reason we
+// fall back to plain-text insertText so the user never sees an error.
+async function insertReply(msg) {
   if (!msg.plain) return;
   const de = props.getEditor();
   if (!de) return;
   try {
     de.focusIn();
-    if (msg.intent && msg.intent !== AiIntent.Generate && selectionText()) {
-      if (de.editor) de.editor.delete();
+    const replaceSelection = !!(msg.intent && msg.intent !== AiIntent.Generate && selectionText());
+    if (replaceSelection) {
+      if (de.editor && typeof de.editor.delete === 'function') {
+        de.editor.delete();
+      }
     }
-    props.insertText(msg.plain);
+    // Prefer the AI's HTML output (msg.text, which has bold/italic/
+    // lists/headings) over the plain-text fallback. Wrap it in a
+    // minimal HTML envelope so the Syncfusion LoadString parser
+    // recognises it as a document fragment even if the model
+    // returned a partial snippet.
+    const rawHtml = (msg.text || '').trim();
+    const htmlEnvelope = rawHtml
+      ? (/^<[a-z][\s\S]*>/i.test(rawHtml) ? rawHtml : `<p>${rawHtml}</p>`)
+      : `<p>${(msg.plain || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+    let sfdt = '';
+    try {
+      sfdt = await systemClipboard({ content: htmlEnvelope, type: 'html' });
+    } catch (clipErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[SmartAIAssistPane] SystemClipboard failed, falling back to plain text:', clipErr);
+      sfdt = '';
+    }
+    if (sfdt) {
+      if (de.editor && typeof de.editor.paste === 'function') {
+        de.editor.paste(sfdt);
+      } else if (de.paste) {
+        de.paste(sfdt);
+      } else {
+        // No paste() available — fall back to plain text.
+        props.insertText(msg.plain);
+      }
+    } else {
+      // Server returned empty SFDT (bad HTML, parser error, etc.) —
+      // fall back to the plain-text insert so the user still sees
+      // the AI's reply land in the document.
+      props.insertText(msg.plain);
+    }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('Insert failed:', err);
+  }
+}
+
+// Copy an AI reply to the system clipboard. We write BOTH the HTML
+// (so pasting into Word / Gmail / a rich text editor preserves the
+// AI's formatting) and the plain text (so pasting into a plain-text
+// context, or reading the clipboard from script, gets the readable
+// version). When the rich ClipboardItem API isn't available
+// (insecure context, older browser) we fall back to copying the
+// plain text. This mirrors the React reference sample's
+// responseToolbarSettings.itemClicked "copy" handler.
+async function copyReply(msg) {
+  if (!msg || (!msg.text && !msg.plain)) return;
+  const html = (msg.text || '').trim();
+  const plain = (msg.plain || '').trim();
+  let copied = false;
+  try {
+    if (navigator.clipboard && typeof window.ClipboardItem === 'function') {
+      // Build the two blobs the browser hands off to the OS
+      // clipboard. The MIME type "text/html" is what tells rich
+      // text targets (Word, Outlook, Gmail compose, etc.) to
+      // preserve formatting; "text/plain" is the universal fallback.
+      const parts = [];
+      if (html)  parts.push(['text/html',  new Blob([html],  { type: 'text/html'  })]);
+      if (plain) parts.push(['text/plain', new Blob([plain], { type: 'text/plain' })]);
+      if (parts.length) {
+        await navigator.clipboard.write(parts.map(([type, blob]) => ({ [type]: blob })).reduce((a, b) => Object.assign(a, b), {}));
+        copied = true;
+      }
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[SmartAIAssistPane] rich clipboard write failed, falling back to text:', err);
+  }
+  if (!copied && navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(plain || html);
+      copied = true;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[SmartAIAssistPane] clipboard.writeText also failed:', err);
+    }
+  }
+  if (!copied) {
+    // Last-resort fallback: legacy execCommand for very old browsers.
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = plain || html;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copied = true;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[SmartAIAssistPane] execCommand copy failed:', err);
+    }
+  }
+  // Give the user a tiny visual hint that the copy succeeded.
+  if (copied) {
+    msg.copied = true;
+    setTimeout(() => { msg.copied = false; }, 1500);
   }
 }
 </script>
@@ -247,8 +354,27 @@ function insertReply(msg) {
         <footer v-if="m.role === 'ai' && m.plain" class="ts-ai-msg-actions">
           <button
             type="button"
+            :title="m.intent === AiIntent.Generate || (m.intent && !selectionText()) ? 'Insert at caret' : 'Replace selection'"
             @click="insertReply(m)"
-          >{{ m.intent === AiIntent.Generate || (m.intent && !selectionText()) ? 'Insert at caret' : 'Replace selection' }}</button>
+          >{{ m.intent === AiIntent.Generate || (m.intent && !selectionText()) ? '+' : 'Replace selection' }}</button>
+          <button
+            type="button"
+            class="ts-ai-copy-btn"
+            :title="m.copied ? 'Copied!' : 'Copy reply to clipboard'"
+            :aria-label="m.copied ? 'Copied' : 'Copy reply to clipboard'"
+            @click="copyReply(m)"
+          >
+            <span
+              v-if="m.copied"
+              class="e-icons e-check"
+              aria-hidden="true"
+            />
+            <span
+              v-else
+              class="e-icons e-copy"
+              aria-hidden="true"
+            />
+          </button>
         </footer>
       </div>
     </div>

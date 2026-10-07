@@ -286,6 +286,7 @@ namespace WebServiceLibrary
                                 foreach (IWorksheet worksheet in workbook.Worksheets)
                                 {
                                     worksheet.EnableSheetCalculations();
+                                    worksheet.Calculate();
                                     
                                     DataTable mergeTable = worksheet.ExportDataTable(
                                                 worksheet.UsedRange,
@@ -324,6 +325,62 @@ namespace WebServiceLibrary
                 string sfdt = JsonConvert.SerializeObject(wordDocument);
                 wordDocument?.Dispose();
                 return sfdt;
+            }
+        }
+
+        // ------------------------------------------------------------
+        // SystemClipboard — convert HTML / RTF / plain text from the
+        // system clipboard (or any external source) to SFDT JSON so
+        // the client can paste it into the document with full
+        // formatting preserved. The Python wrapper exposes this as
+        // POST /api/DocumentEditor/SystemClipboard and the AI rewrite
+        // dialog uses it to insert the AI's HTML output without
+        // losing bold / italic / list / heading formatting.
+        //
+        // Contract: body { content, type } where type is one of
+        // "html", "rtf", "txt" (the file extension equivalents used
+        // by ParseEJFormatType). Empty content returns "" so the
+        // client can short-circuit without a server-side error.
+        // ------------------------------------------------------------
+        public string SystemClipboard(string content, string type)
+        {
+            if (string.IsNullOrEmpty(content))
+                return string.Empty;
+
+            // Normalize the type hint to the leading-dot form expected
+            // by ParseEJFormatType (e.g. "html" -> ".html").
+            string fmt = (type ?? string.Empty).Trim().ToLowerInvariant();
+            if (!fmt.StartsWith("."))
+                fmt = "." + fmt;
+            if (string.IsNullOrEmpty(fmt) || fmt == ".")
+                fmt = ".html";
+
+            EJFormatType formatType;
+            try
+            {
+                formatType = ParseEJFormatType(fmt);
+            }
+            catch (NotSupportedException)
+            {
+                // Unknown format — fall back to HTML which is what the
+                // AI rewrite dialog sends.
+                formatType = EJFormatType.Html;
+            }
+
+            try
+            {
+                EJWordDocument document = EJWordDocument.LoadString(
+                    content, formatType);
+                string json = JsonConvert.SerializeObject(document);
+                document.Dispose();
+                return json;
+            }
+            catch (Exception)
+            {
+                // Bad input (malformed HTML, etc.) — return empty so
+                // the client can show a friendly error instead of a
+                // 500.
+                return string.Empty;
             }
         }
 

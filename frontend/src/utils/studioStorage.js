@@ -10,6 +10,7 @@ const DOC_EDITOR_IMPORT_FILE_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEdit
 const DOC_EDITOR_SAVE_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/Save`;
 const DOC_EDITOR_MAILMERGE_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/MailMerge`;
 const DOC_EDITOR_EXPORT_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/Export`;
+const DOC_EDITOR_SYSTEM_CLIPBOARD_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/SystemClipboard`;
 const STUDIO_API = `${DOCUMENT_EDITOR_BASE_URL}/api/studio`;
 
 // Build an absolute `${DOCUMENT_EDITOR_BASE_URL}/Templates/<slug>.docx`
@@ -149,6 +150,37 @@ export async function mailMergePreview({ fileName, documentData, mailMergeData =
   try { detail = await res.text(); } catch { /* ignore */ }
   throw new Error(
     `Mail merge failed (${res.status})${detail ? `: ${detail.slice(0, 240)}` : ''}`,
+  );
+}
+
+// POST { content, type } to the backend's SystemClipboard endpoint and
+// return the resulting SFDT JSON. The server converts HTML / RTF /
+// plain text (using Syncfusion.EJ2.WordEditor's LoadString) into the
+// SFDT format the client can paste into the document with full
+// formatting preserved (bold, italic, lists, headings, links, etc.).
+// This is the same endpoint the editor uses internally when
+// `enableLocalPaste=false` is set, but we also call it directly from
+// the AI rewrite dialog to insert the AI's HTML output without
+// losing formatting (editor.editor.insertText() drops formatting).
+//
+// type defaults to "html"; pass "rtf" or "txt" for other inputs.
+// Returns an empty string when the server returns an empty body
+// (which signals "no content to paste"); throws on HTTP errors.
+export async function systemClipboard({ content, type = 'html' }) {
+  if (typeof content !== 'string' || content.length === 0) return '';
+  const res = await fetch(DOC_EDITOR_SYSTEM_CLIPBOARD_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+    body: JSON.stringify({ content, type }),
+  });
+  if (res.status === 200) {
+    const sfdt = await res.text();
+    return sfdt || '';
+  }
+  let detail = '';
+  try { detail = await res.text(); } catch { /* ignore */ }
+  throw new Error(
+    `SystemClipboard failed (${res.status})${detail ? `: ${detail.slice(0, 240)}` : ''}`,
   );
 }
 

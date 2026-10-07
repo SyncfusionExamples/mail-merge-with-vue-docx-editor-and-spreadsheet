@@ -28,8 +28,10 @@ import {
   readBlobAsDataUrl,
   addCommonMergeField,
 } from './utils/studioStorage.js';
+import { AiIntent } from './ai/prompts.js';
 import SmartAIAssistPane from './components/SmartAIAssistPane.vue';
 import SpreadsheetComponent from './components/SpreadsheetComponent.vue';
+import AiRewriteDialog from './components/AiRewriteDialog.vue';
 
 // Vue 3 module registration for the DocumentEditorContainer (the
 // `.Inject()` static from the React package doesn't exist in ej2-vue —
@@ -161,6 +163,63 @@ const insertFieldDialogButtons = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// AI rewrite dialog state — opened from the document editor's right-click
+// context menu (Grammar Check, Rephrase, Translate). We capture the
+// original selection's start/end offsets BEFORE opening the dialog so the
+// Replace action can put the rewritten text back in the same place even if
+// the user clicks around in the document while the dialog is open. This
+// mirrors the react-docx-editor-with-ai sample's `getDocumentText` +
+// `insertContent` pattern, where the offsets are the single source of
+// truth for the "where does the rewrite go?" decision.
+// ---------------------------------------------------------------------------
+const aiRewriteDialogOpen = ref(false);
+const aiRewriteIntent = ref(AiIntent.Grammar);
+const aiRewriteSource = ref('');
+const aiRewriteStart = ref(null);
+const aiRewriteEnd = ref(null);
+
+function openAiRewriteDialog(intent) {
+  const de = getEditor();
+  if (!de) return;
+  const sel = de.selection;
+  if (!sel) return;
+  // selection.isEmpty is the Syncfusion-canonical "no selection" check;
+  // the /\S/.test(text) guard mirrors the Syncfusion "Customize Context
+  // Menu" docs — a selection that is technically non-empty but only
+  // contains whitespace should be treated as empty.
+  const text = (sel.text || '').trim();
+  if (sel.isEmpty || !/\S/.test(text)) {
+    // Nothing to rewrite. The context-menu hook normally hides the
+    // option in this case, but guard here for programmatic callers.
+    return;
+  }
+  // Capture offsets BEFORE the dialog opens so a click anywhere in
+  // the document afterwards can't move the replacement target.
+  let start = null;
+  let end = null;
+  try {
+    start = sel.startOffset;
+    end = sel.endOffset;
+  } catch { /* selection API may not be ready yet */ }
+  aiRewriteIntent.value = intent;
+  aiRewriteSource.value = text;
+  aiRewriteStart.value = start;
+  aiRewriteEnd.value = end;
+  aiRewriteDialogOpen.value = true;
+}
+
+function closeAiRewriteDialog() {
+  aiRewriteDialogOpen.value = false;
+}
+
+// Called by the AI rewrite dialog's `replace` emit. We mark the
+// document dirty so the Save button enables; the dialog itself has
+// already done the editor-level delete/insert.
+function onAiRewriteReplaced() {
+  dirty.value = true;
+}
+
 // Called the moment the modal Syncfusion Dialog finishes opening. We
 // just log here — the SpreadsheetComponent's own `created` hook handles
 // loading rentRollDetails.xlsx from the Python service.
@@ -203,11 +262,13 @@ async function handleCreated() {
     isLoading.value = false;
     isLoadingDoc.value = false;
   }
-  // Mount the custom "Mail Merge" ribbon tab once the container (and
-  // its ribbon) is fully ready. The ribbon instance lives on the
-  // container's ej2Instances, not on the inner documentEditor.
+  // Mount the custom "Mail Merge" ribbon tab and the AI rewrite
+  // context-menu items once the container (and its editor) is fully
+  // ready. The ribbon instance lives on the container's ej2Instances;
+  // the context menu lives on the inner documentEditor's ej2Instances.
   await nextTick();
   addMailMergeRibbon();
+  setupContextMenu();
 }
 
 // ---------------------------------------------------------------------------
@@ -259,14 +320,6 @@ function addMailMergeRibbon() {
                   clicked: openInsertField,
                 },
               },
-              {
-                type: 'Button',
-                buttonSettings: {
-                  content: 'Insert & Save to Library',
-                  iconCss: 'e-icons e-save',
-                  clicked: openInsertFieldAndSave,
-                },
-              },
             ],
           },
         ],
@@ -277,6 +330,83 @@ function addMailMergeRibbon() {
   // Add the new tab at the end of the ribbon (after Insert, Review,
   // View, etc.) so it doesn't disturb the built-in ordering.
   ribbon.addTab(tab);
+}
+
+// ---------------------------------------------------------------------------
+// Custom right-click context menu — AI rewrite actions
+// ---------------------------------------------------------------------------
+// Per the Syncfusion "Customize Context Menu" docs
+// (https://help.syncfusion.com/document-processing/word/word-processor/vue/how-to/customize-context-menu)
+// we register a custom item via `editor.contextMenu.addCustomMenu(...)`
+// and react to clicks via the `customContextMenuSelect` event. The
+// `customContextMenuBeforeOpen` hook lets us hide the item when there
+// is no real text selection — a critical UX detail because the
+// "Grammar Check" / "Rephrase" / "Translate" actions have nothing to
+// act on when nothing is selected.
+function setupContextMenu() {
+  const de = getEditor();
+  if (!de || !de.contextMenu || typeof de.contextMenu.addCustomMenu !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[studio] contextMenu.addCustomMenu not available; AI menu items not added');
+    return;
+  }
+  if (de.__tsContextMenuAdded) return;  // idempotent
+  de.__tsContextMenuAdded = true;
+
+  // The menu items live on the editor instance so we can reference
+  // them from the beforeOpen hook via `document.getElementById(...)`
+  // (the Syncfusion docs use the same id-based lookup pattern).
+  // The element ids on the DOM are derived from
+  // `${editor.element.id}${item.id}`.
+  const baseId = de.element?.id || '';
+  const menuItems = [
+    {
+      text: 'Grammar Check',
+      id: 'ts_grammar_check',
+      iconCss: 'e-icons e-grammar-check',
+    }
+  ];
+
+  // The second arg `false` means "do NOT hide the default context
+  // menu items" — we just append our custom items.
+  de.contextMenu.addCustomMenu(menuItems, false);
+
+  // Click handler. The `args.id` is the full DOM id (e.g.
+  // `container_ts_grammar_check`); we strip the editor's element id
+  // prefix to get our stable item id.
+  de.customContextMenuSelect = (args) => {
+    const fullId = args && args.id;
+    if (typeof fullId !== 'string') return;
+    const shortId = baseId && fullId.startsWith(baseId)
+      ? fullId.slice(baseId.length)
+      : fullId;
+    let intent = null;
+    if (shortId === 'ts_grammar_check') intent = AiIntent.Grammar;
+    else if (shortId === 'ts_rephrase') intent = AiIntent.Rephrase;
+    else if (shortId === 'ts_translate') intent = AiIntent.Translate;
+    if (!intent) return;
+    openAiRewriteDialog(intent);
+  };
+
+  // Hide the custom items when there is no real text selection. The
+  // /\S/.test() guard mirrors the Syncfusion docs — a selection of
+  // pure whitespace should also be treated as empty. We default to
+  // hidden and only show the items when the selection has real text.
+  de.customContextMenuBeforeOpen = (args) => {
+    const ids = (args && Array.isArray(args.ids)) ? args.ids : [];
+    for (const fullId of ids) {
+      const shortId = baseId && fullId.startsWith(baseId)
+        ? fullId.slice(baseId.length)
+        : fullId;
+      if (!shortId.startsWith('ts_')) continue;
+      const el = document.getElementById(fullId);
+      if (!el) continue;
+      const sel = de.selection;
+      const text = (sel && typeof sel.text === 'string') ? sel.text : '';
+      const hasText = sel && !sel.isEmpty && /\S/.test(text);
+      el.style.display = hasText ? 'block' : 'none';
+    }
+  };
 }
 
 // contentChange: mark dirty only on real user edits (not programmatic open).
@@ -446,7 +576,7 @@ async function handlePreviewWithExcel() {
   <div class="ts-app">
     <header class="ts-viewer-head">
       <div class="ts-viewer-title">
-        <h2>Document Merge Preview</h2>
+        <h2>Mail Merge with DOCX Editor using Excel Data</h2>
       </div>
       <div class="ts-viewer-actions">
         <button
@@ -508,6 +638,7 @@ async function handlePreviewWithExcel() {
           :toolbarMode="'Ribbon'"
           :showPropertiesPane="false"
           :serviceUrl="DOCUMENT_EDITOR_SERVICE_URL"
+          :enableLocalPaste="false"
           @created="handleCreated"
           @contentChange="handleContentChange"
         />
@@ -605,5 +736,25 @@ async function handlePreviewWithExcel() {
         </p>
       </div>
     </DialogComponent>
+
+    <!-- AI rewrite dialog — opened from the document editor's
+         right-click context menu (Grammar Check, Rephrase, Translate).
+         Two-pane "From" / "To" layout with word-level diff highlights
+         (red for the original, green for the rewrite). Footer has
+         Replace / Regenerate / Cancel — no settings dropdown. The
+         dialog captures the original selection's start/end offsets
+         when opened, so Replace can put the new text back at the
+         same place even if the user clicks around in the document
+         while the dialog is open. -->
+    <AiRewriteDialog
+      v-model:visible="aiRewriteDialogOpen"
+      :intent="aiRewriteIntent"
+      :source-text="aiRewriteSource"
+      :source-start="aiRewriteStart"
+      :source-end="aiRewriteEnd"
+      :getEditor="getEditor"
+      :focusEditor="() => getEditor()?.focusIn()"
+      @replaced="onAiRewriteReplaced"
+    />
   </div>
 </template>

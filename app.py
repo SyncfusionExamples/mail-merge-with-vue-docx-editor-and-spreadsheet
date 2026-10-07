@@ -573,6 +573,44 @@ def de_import_file_url():
         )
 
 
+@app.route("/api/DocumentEditor/SystemClipboard", methods=["POST"])
+def de_system_clipboard():
+    """
+    Mirror of DocumentEditorController.SystemClipboard — convert
+    HTML / RTF / plain text to SFDT JSON so the client can paste it
+    into the document with full formatting preserved.
+
+    Body:  { content: "<html>...</html>", type: "html" }
+    Reply: SFDT JSON string (or "" when content is empty / unparsable).
+
+    The Syncfusion DocumentEditor calls this endpoint automatically
+    when `enableLocalPaste=false` is set on the editor (i.e. when the
+    editor is told to defer formatted-paste handling to the server).
+    The AI rewrite dialog also uses it directly: it POSTs the AI's
+    HTML output and then calls `editor.editor.paste(sfdtString)` to
+    insert the formatted SFDT at the cursor, replacing the selected
+    text in the same operation.
+    """
+    try:
+        body = request.get_json(force=True, silent=False) or {}
+        content = body.get("content", "") or ""
+        ctype   = body.get("type", "html") or "html"
+        if not content:
+            # Empty body — return "" so the client can short-circuit
+            # cleanly. The original C# controller returns "" too.
+            return Response("", status=200, mimetype="application/json")
+        result = docEditor.SystemClipboard(content, ctype)
+        # Result is the SFDT JSON string (or "" on parse failure).
+        # Return it as plain text — the client feeds it straight into
+        # editor.editor.paste() which expects an SFDT string, not JSON.
+        return Response(result or "", status=200, mimetype="application/json")
+    except Exception as e:
+        return Response(
+            json.dumps({"error": str(e), "trace": traceback.format_exc()}),
+            status=500, mimetype="application/json",
+        )
+
+
 @app.route("/api/DocumentEditor/RestrictEditing", methods=["POST"])
 def de_restrict_editing():
     """

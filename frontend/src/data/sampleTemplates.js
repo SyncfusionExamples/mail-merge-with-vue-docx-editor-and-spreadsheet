@@ -27,30 +27,8 @@ export const DEFAULT_TEMPLATE_DOCX = 'Property Appraisal Report Template.docx';
 export const AI_API_BASE = 'http://localhost:5000/api/DocumentEditor';
 
 // ---------------------------------------------------------------------------
-// Merge field catalog (same static catalog as the full samples). Custom
-// fields added via the panel's Add Field dialog are POSTed to the
-// server's StudioController (common scope) so they persist.
+// Merge fields are now user-driven. Use the "Mail Merge" tab in the
+// document editor ribbon to insert merge fields, and the "Insert & Save to
+// Library" button to add a new entry to the common field catalog on the
+// server (loaded via fetchCommonMergeFields).
 // ---------------------------------------------------------------------------
-export const MERGE_FIELDS = {
-  "Property ID": true,
-  "Property Name": true,
-  "Property Type": true,
-  "Address": true,
-  "City": true,
-  "State": true,
-  "Zip Code": true,
-  "Year Built": true,
-  "Building Class": true,
-  "Gross Building Area (Sq Ft)": true,
-  "Net Rentable Area (Sq Ft)": true,
-  "Land Area (Acres)": true,
-  "Number of Floors": true,
-  "Total Rental Units": true,
-  "Property Manager": true,
-  "Owner Name": true,
-  "Appraisal Date": true,
-  "Market Cap Rate": true,
-  "Average Annual Operating Expense": true,
-  "Average Annual Maintenance Expense": true,
-  "Property Condition": true
-};

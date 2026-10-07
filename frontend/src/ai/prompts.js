@@ -15,18 +15,23 @@ export const AiIntent = {
 // Quick-pick suggestion chips shown in the chat pane (same list as the
 // Smart AI Assist demo).
 export const SUGGESTIONS = [
-  'Draft a thank-you letter for a donation',
   'Summarize this document',
   'Rephrase the selected text',
   'Fix grammar in my document',
 ];
 
-export function buildPrompt(intent, text, { tone = 'Professional', format = 'Paragraph', length = 'Medium', toLang = 'French', userHint = '' } = {}) {
+export function buildPrompt(intent, text, { tone = 'Professional', format = 'Paragraph', length = 'Medium', toLang = 'French', userHint = '', regenerate = false } = {}) {
   const content = (text || '').trim();
   const toneValue = String(tone).toLowerCase();
   const formatValue = String(format).toLowerCase();
   const lengthValue = String(length).toLowerCase();
   const htmlRule = ' Always respond in proper HTML format, excluding <html>, <head> and <body> tags. Do not describe what you are doing; respond with the content only.';
+  // When the user clicks "Regenerate" in the AI rewrite dialog we
+  // ask the model to produce a *different* rewrite from the previous
+  // one — the same prompt verbatim usually returns the same answer.
+  const regenHint = regenerate
+    ? ' Provide a different rewrite than any previous attempt.'
+    : '';
 
   switch (intent) {
     case AiIntent.Generate:
@@ -40,7 +45,7 @@ export function buildPrompt(intent, text, { tone = 'Professional', format = 'Par
     case AiIntent.Rephrase:
       return {
         messages: [
-          { role: 'system', content: `You are a helpful document assistant. Rephrase the provided text to reflect a tone of '${toneValue}', formatted in '${formatValue}' style, and maintain a length of '${lengthValue}'.${htmlRule}` },
+          { role: 'system', content: `You are a helpful document assistant. Rephrase the provided text to reflect a tone of '${toneValue}', formatted in '${formatValue}' style, and maintain a length of '${lengthValue}'.${regenHint}${htmlRule}` },
           { role: 'user', content },
         ],
         model: 'gpt-4',
@@ -48,7 +53,7 @@ export function buildPrompt(intent, text, { tone = 'Professional', format = 'Par
     case AiIntent.Grammar:
       return {
         messages: [
-          { role: 'system', content: `You are a helpful document assistant. Analyze the provided text, check for and correct any grammatical errors, and improve clarity.${htmlRule}` },
+          { role: 'system', content: `You are a helpful document assistant. Analyze the provided text, check for and correct any grammatical errors, and improve clarity.${regenHint}${htmlRule}` },
           { role: 'user', content },
         ],
         model: 'gpt-4',
