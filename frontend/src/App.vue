@@ -20,6 +20,7 @@ import {
   absoluteDocxUrl,
   fetchSfdtFromDocx,
   saveTemplateToServer,
+  exportDocumentToPdf,
   mailMergePreview,
   readBlobAsDataUrl,
   fetchCommonMergeFields,
@@ -49,6 +50,7 @@ const loadError = ref('');
 
 const isSaving = ref(false);
 const isDownloading = ref(false);
+const isExportingPdf = ref(false);
 
 // Edit-Excel dialog state: when `isExcelOpen` is true the
 // SpreadsheetComponent is mounted inside a modal Syncfusion Dialog and
@@ -211,6 +213,41 @@ async function handleDownload() {
     alert(`Download failed: ${err.message || err}`);
   } finally {
     setTimeout(() => { isDownloading.value = false; }, 800);
+  }
+}
+
+// ----- Export to PDF flow -----
+// Serializes the live document to SFDT, POSTs it to the backend's
+// /api/DocumentEditor/Export endpoint with Format='Pdf', and lets the
+// browser download the resulting PDF. The export uses the
+// DocIORenderer on the server side (no client-side rendering needed).
+async function handleExportPdf() {
+  const de = getEditor();
+  if (!de) return;
+  isExportingPdf.value = true;
+  try {
+    let sfdtContent = '';
+    try {
+      sfdtContent = de.serialize();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('serialize SFDT failed:', err);
+      throw new Error('Could not serialize the document. Please try again.');
+    }
+    if (!sfdtContent) throw new Error('Document serialized to an empty payload.');
+
+    const result = await exportDocumentToPdf({
+      sfdtContent,
+      documentName: docxBaseName,
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[studio] exported via DocumentEditorController.Export -> ${result.fileName}`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Export PDF failed:', err);
+    alert(`Export PDF failed: ${err.message || err}`);
+  } finally {
+    isExportingPdf.value = false;
   }
 }
 
@@ -399,6 +436,13 @@ function handleCanvasDrop(e) {
           title="Download the document content."
           @click="handleDownload"
         >{{ isDownloading ? 'Preparing…' : 'Download' }}</button>
+        <button
+          type="button"
+          class="ts-head-btn"
+          :disabled="isExportingPdf"
+          title="Export the document to PDF (rendered server-side via DocIORenderer)."
+          @click="handleExportPdf"
+        >{{ isExportingPdf ? 'Exporting…' : 'Export to PDF' }}</button>
       </div>
     </header>
 

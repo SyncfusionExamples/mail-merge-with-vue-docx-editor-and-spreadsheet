@@ -9,6 +9,7 @@ import { DOCUMENT_EDITOR_BASE_URL } from '../data/sampleTemplates.js';
 const DOC_EDITOR_IMPORT_FILE_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/ImportFileURL`;
 const DOC_EDITOR_SAVE_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/Save`;
 const DOC_EDITOR_MAILMERGE_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/MailMerge`;
+const DOC_EDITOR_EXPORT_URL = `${DOCUMENT_EDITOR_BASE_URL}/api/DocumentEditor/Export`;
 const STUDIO_API = `${DOCUMENT_EDITOR_BASE_URL}/api/studio`;
 
 // Build an absolute `${DOCUMENT_EDITOR_BASE_URL}/Templates/<slug>.docx`
@@ -76,6 +77,51 @@ export async function saveTemplateToServer({ sfdtContent, documentName, format =
     );
   }
   return { ok: true, fileName, format };
+}
+
+// Serialize the editor's SFDT and POST it to the backend's
+// DocumentEditorController.Export endpoint with a SaveParameter
+// { Content, FileName, Format: 'Pdf' } body. The server returns the
+// rendered PDF as a binary attachment. The caller can choose to either
+// trigger a browser download (default) or read the blob directly
+// via { returnBlob: true }.
+export async function exportDocumentToPdf({ sfdtContent, documentName, returnBlob = false }) {
+  if (typeof sfdtContent !== 'string' || sfdtContent.length === 0) {
+    throw new Error('exportDocumentToPdf: sfdtContent is required');
+  }
+  const baseName = String(documentName || 'Document').replace(/\.docx$/i, '').trim() || 'Document';
+  const res = await fetch(DOC_EDITOR_EXPORT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      Content: sfdtContent,
+      FileName: `${baseName}.pdf`,
+      Format: 'Pdf',
+    }),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = await res.text(); } catch { /* ignore */ }
+    throw new Error(
+      `Export PDF failed (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`,
+    );
+  }
+  const blob = await res.blob();
+  if (returnBlob) {
+    return { ok: true, fileName: `${baseName}.pdf`, blob };
+  }
+  // Trigger a browser download by creating a temporary <a> element.
+  const downloadUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `${baseName}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Free the object URL on the next tick (Safari needs the click to
+  // finish first).
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+  return { ok: true, fileName: `${baseName}.pdf` };
 }
 
 // POST { fileName, documentData (base64 Data URL), mailMergeData } to the
