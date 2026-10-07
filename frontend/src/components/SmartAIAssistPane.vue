@@ -25,6 +25,48 @@ const props = defineProps({
   insertText: { type: Function, required: true },
 });
 
+// Max characters we hand to the AI from the live document. The Syncfusion
+// DocumentEditor can return arbitrarily long text; we cap it so a single
+// click on "Summarize this document" doesn't blow past the model's
+// context window or burn through Azure OpenAI quota.
+const MAX_DOC_CHARS = 12_000;
+
+function truncate(text, max = MAX_DOC_CHARS) {
+  if (!text) return '';
+  return text.length > max ? text.slice(0, max) + '…' : text;
+}
+
+// Read the entire document body as plain text. Used as the implicit
+// "selection" when the user clicks a document-level chip (Summarize /
+// Rephrase / Fix grammar) without first selecting anything.
+//
+// Syncfusion's DocumentEditor API for the whole-document text is
+// `saveAsBlob(format)` which returns a Blob of the serialized
+// document; for plain text pass 'Txt'. The blob is then read back as
+// a UTF-8 string.
+async function fullDocumentText() {
+  try {
+    const de = props.getEditor();
+    if (!de || typeof de.saveAsBlob !== 'function') return '';
+    const blob = await de.saveAsBlob('Txt');
+    if (!blob) return '';
+    // Read the blob as text and trim. We use FileReader for the
+    // broadest browser support — `await blob.text()` would also work
+    // in modern browsers but FileReader is universally available.
+    const text = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+      reader.readAsText(blob);
+    });
+    return String(text || '').trim();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('fullDocumentText failed:', err);
+    return '';
+  }
+}
+
 const messages = ref([]);  // { role: 'user' | 'ai', text, plain, intent }
 const input = ref('');
 const isThinking = ref(false);
@@ -76,35 +118,68 @@ function detectIntent(prompt) {
   return AiIntent.Generate;
 }
 
+// Document-level chip clicks (e.g. "Summarize this document") should
+// run the matching intent on the whole document, not on the (empty)
+// selection. Returns one of AiIntent.* or null when the prompt isn't
+// a recognized document-level action.
+function detectDocumentLevelIntent(prompt) {
+  const p = (prompt || '').toLowerCase();
+  if (/summari|tl;?dr/.test(p)) return AiIntent.Summarize;
+  if (/rephra|rewrite|para/.test(p)) return AiIntent.Rephrase;
+  if (/grammar|fix|correct|spelling/.test(p)) return AiIntent.Grammar;
+  return null;
+}
+
 async function ask(prompt, forcedIntent = null) {
   const cleanPrompt = String(prompt || '').trim();
   if (!cleanPrompt && !forcedIntent) return;
   if (isThinking.value) return;
 
-  const intent = forcedIntent || detectIntent(cleanPrompt);
   const sel = selectionText();
+  // Resolve the intent in priority order:
+  //   1) forcedIntent from a chip click (we know what the user wants)
+  //   2) explicit selection-aware detection (keyword + selection present)
+  //   3) document-level detection (chip clicked but no selection) → fetch full doc
+  //   4) Generate
+  let intent = forcedIntent
+    || (sel ? detectIntent(cleanPrompt) : null)
+    || detectDocumentLevelIntent(cleanPrompt)
+    || AiIntent.Generate;
 
-  // Show what the user asked (for selection intents, show the selection).
+  let source;
+  if (intent === AiIntent.Generate) {
+    source = cleanPrompt;
+  } else {
+    // For refine actions we prefer the current selection, falling back to
+    // the whole document when the user clicked a document-level chip.
+    // fullDocumentText() is async because Syncfusion's getText /
+    // saveAsBlob returns a Promise / Blob.
+    let fullDoc = '';
+    if (!sel) {
+      isThinking.value = true;
+      await pushMsg('ai', '<em>Reading the full document…</em>', '', 'thinking');
+      fullDoc = truncate(await fullDocumentText());
+      // Pop the "Reading…" placeholder — we re-push a Thinking bubble
+      // below so the chat always shows the same loading state.
+      messages.value.pop();
+    }
+    source = sel || fullDoc;
+    if (!source || source.length < 3) {
+      await pushMsg('ai', 'The document is empty or has no readable text. Type a prompt or add content first.');
+      return;
+    }
+  }
+
+  // Show what the user asked. For selection intents, label with the
+  // (possibly truncated) source so the chat makes the action obvious.
   const userLabel = intent === AiIntent.Generate
     ? cleanPrompt
-    : `${cleanPrompt || 'Act on selection:'} ${sel ? `<em>“${sel.slice(0, 140)}${sel.length > 140 ? '…' : ''}”</em>` : '(no text selected)'}`;
+    : `${cleanPrompt || 'Act on selection:'} <em>“${source.slice(0, 140)}${source.length > 140 ? '…' : ''}”</em>`;
   await pushMsg('user', userLabel);
 
   isThinking.value = true;
   await pushMsg('ai', '<em>Thinking…</em>', '', 'thinking');
   try {
-    let source;
-    if (intent === AiIntent.Generate) {
-      source = cleanPrompt;
-    } else {
-      source = sel;
-      if (!source || source.length < 3) {
-        messages.value.pop(); // remove Thinking bubble
-        await pushMsg('ai', 'Select some text in the document first, then run this action.');
-        return;
-      }
-    }
-
     const options = buildPrompt(intent, source, {
       userHint: intent === AiIntent.Generate ? cleanPrompt : '',
     });
@@ -133,15 +208,16 @@ function onSend() {
 
 // Insert an AI reply into the document. For Generate the text lands at
 // the caret; for selection intents it REPLACES the selected text.
+// For document-level intents (Summarize / Rephrase / Fix grammar
+// fired without a real selection) we just insert at the caret.
 function insertReply(msg) {
   if (!msg.plain) return;
   const de = props.getEditor();
   if (!de) return;
   try {
     de.focusIn();
-    if (msg.intent && msg.intent !== AiIntent.Generate) {
-      const sel = selectionText();
-      if (sel && de.editor) de.editor.delete();
+    if (msg.intent && msg.intent !== AiIntent.Generate && selectionText()) {
+      if (de.editor) de.editor.delete();
     }
     props.insertText(msg.plain);
   } catch (err) {
@@ -172,7 +248,7 @@ function insertReply(msg) {
           <button
             type="button"
             @click="insertReply(m)"
-          >{{ m.intent === AiIntent.Generate ? 'Insert at caret' : 'Replace selection' }}</button>
+          >{{ m.intent === AiIntent.Generate || (m.intent && !selectionText()) ? 'Insert at caret' : 'Replace selection' }}</button>
         </footer>
       </div>
     </div>
