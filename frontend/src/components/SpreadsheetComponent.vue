@@ -110,7 +110,6 @@ export default {
           })
           .then((result) => {
             console.log("Shared data file saved successfully:", result);
-            alert("Shared data file saved successfully!");
           })
           .catch((err) => {
             console.error("SaveRentRoll failed:", err);

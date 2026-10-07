@@ -1,0 +1,14 @@
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\net10.0\WebServiceLibrary.runtimeconfig.json
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\net10.0\WebServiceLibrary.deps.json
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\net10.0\WebServiceLibrary.dll
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\bin\Release\net10.0\WebServiceLibrary.pdb
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.csproj.AssemblyReference.cache
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.GeneratedMSBuildEditorConfig.editorconfig
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.AssemblyInfoInputs.cache
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.AssemblyInfo.cs
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.csproj.CoreCompileInputs.cache
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.sourcelink.json
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.dll
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\refint\WebServiceLibrary.dll
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\WebServiceLibrary.pdb
+D:\New folder\New folder\tmail-merge-with-vue-docx-editor-and-spreadsheet\.NET Standard Wrapper Library\WebServiceLibrary\obj\Release\net10.0\ref\WebServiceLibrary.dll

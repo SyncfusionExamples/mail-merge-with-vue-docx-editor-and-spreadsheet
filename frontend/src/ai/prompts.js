@@ -5,23 +5,26 @@
 // the reply can be previewed and inserted into the document as text.
 
 export const AiIntent = {
-  Generate: 'Generate',   // free-text prompt → new content
-  Rephrase: 'Rephrase',   // acts on the editor selection
-  Grammar: 'Grammar',     // acts on the editor selection
-  Translate: 'Translate', // acts on the editor selection
-  Summarize: 'Summarize', // acts on the editor selection
+  Generate: 'Generate',     // free-text prompt → new content
+  QandA:     'QandA',      // question about the document (uses doc as context)
+  Rephrase: 'Rephrase',     // acts on the editor selection
+  Grammar: 'Grammar',       // acts on the editor selection
+  Translate: 'Translate',   // acts on the editor selection
+  Summarize: 'Summarize',   // acts on the editor selection
 };
 
-// Quick-pick suggestion chips shown in the chat pane (same list as the
-// Smart AI Assist demo).
+// Quick-pick suggestion chips shown in the chat pane. The "Summarize this
+// document" chip acts on the whole document; free-text Q&A typed in the
+// input box uses the document as context (see buildPrompt + QandA intent).
 export const SUGGESTIONS = [
   'Summarize this document',
-  'Rephrase the selected text',
-  'Fix grammar in my document',
+  'What are the key points in this document?',
+  'List the names mentioned in this document',
 ];
 
-export function buildPrompt(intent, text, { tone = 'Professional', format = 'Paragraph', length = 'Medium', toLang = 'French', userHint = '', regenerate = false } = {}) {
+export function buildPrompt(intent, text, { tone = 'Professional', format = 'Paragraph', length = 'Medium', toLang = 'French', userHint = '', regenerate = false, documentContext = '' } = {}) {
   const content = (text || '').trim();
+  const doc = (documentContext || '').trim();
   const toneValue = String(tone).toLowerCase();
   const formatValue = String(format).toLowerCase();
   const lengthValue = String(length).toLowerCase();
@@ -42,6 +45,23 @@ export function buildPrompt(intent, text, { tone = 'Professional', format = 'Par
         ],
         model: 'gpt-4',
       };
+    case AiIntent.QandA: {
+      // Q&A about the document — same pattern as the react-docx-editor-with-ai
+      // sample's getDocumentText(): the document text is included as
+      // "Context" so the model can answer based on the actual file
+      // rather than inventing data. The user question is the second
+      // user message so the model can clearly see "context vs. question".
+      const contextBlock = doc
+        ? `\n\nContext (document text):\n"""${doc}"""`
+        : '';
+      return {
+        messages: [
+          { role: 'system', content: `You are a helpful document assistant. Use the provided document context to answer the user's question. If the answer is not in the document, say so explicitly.${htmlRule}` },
+          { role: 'user', content: `${content || userHint}${contextBlock}` },
+        ],
+        model: 'gpt-4',
+      };
+    }
     case AiIntent.Rephrase:
       return {
         messages: [

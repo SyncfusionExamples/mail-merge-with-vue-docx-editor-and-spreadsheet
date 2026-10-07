@@ -617,12 +617,6 @@ async function handlePreviewWithExcel() {
     </header>
 
     <div class="ts-viewer-body">
-      <!-- Smart AI Assist view (left): chat conversation + suggestions. -->
-      <SmartAIAssistPane
-        :getEditor="getEditor"
-        :getSelectionText="getSelectionText"
-        :insertText="insertText"
-      />
       <div class="ts-viewer-canvas">
         <p v-if="isLoadingDoc" class="ts-loading">Loading document…</p>
         <p v-if="loadError" class="ts-load-error">{{ loadError }}</p>
@@ -643,6 +637,13 @@ async function handlePreviewWithExcel() {
           @contentChange="handleContentChange"
         />
       </div>
+
+      <!-- Smart AI Assist view (right): chat conversation + suggestions. -->
+      <SmartAIAssistPane
+        :getEditor="getEditor"
+        :getSelectionText="getSelectionText"
+        :insertText="insertText"
+      />
     </div>
 
     <!-- Merge error toast (replaces the old JSON-upload modal). -->
