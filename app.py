@@ -35,7 +35,7 @@ def add_cors_on_errors(resp):
 # get the current working directory
 current_working_directory = os.getcwd()
 # Load explicit DLLs from the publish folder (direct AddReference calls)
-publish_base = current_working_directory + "/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/netstandard2.0/publish/"
+publish_base = current_working_directory + "/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/netstandard2.0/publish/"
 
 
 clr.AddReference(publish_base + "Syncfusion.EJ2.Spreadsheet.dll")
@@ -74,7 +74,8 @@ from System import Enum
 from System.IO import SeekOrigin
 
 # Register Syncfusion license
-SyncfusionLicenseProvider.RegisterLicense("Your License key")
+LICENSE_KEY = os.environ.get("SYNCFUSION_LICENSE_KEY", "")
+SyncfusionLicenseProvider.RegisterLicense(LICENSE_KEY)
 
 spreadEditor = SpreadsheetEditor() #create our SpreadsheetEditor object
 
@@ -257,9 +258,15 @@ def save_rent_roll():
         )
 
 
+@app.route("/LicenseKey", methods=["GET"])
+def license_key():
+    # Lets the frontend register the key at runtime from the Azure app setting.
+    return Response(LICENSE_KEY, mimetype="text/plain")
+
+
 @app.route("/")
 def home():
-    return "Flask Web API for SpreadsheetEditor!"
+    return app.send_static_file("index.html")
 
 if __name__ == "__main__":
     # threaded=True so large uploads don't block the dev server

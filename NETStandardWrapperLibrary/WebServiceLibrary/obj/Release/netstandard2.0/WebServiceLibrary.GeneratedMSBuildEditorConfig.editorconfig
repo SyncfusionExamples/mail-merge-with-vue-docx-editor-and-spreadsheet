@@ -1,0 +1,8 @@
+is_global = true
+build_property.RootNamespace = WebServiceLibrary
+build_property.ProjectDir = D:\EJ2\Samples\presale_demo\tmail-merge-with-vue-docx-editor-and-spreadsheet\NETStandardWrapperLibrary\WebServiceLibrary\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.CsWinRTUseWindowsUIXamlProjections = false
+build_property.EffectiveAnalysisLevelStyle = 
+build_property.EnableCodeStyleSeverity = 
