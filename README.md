@@ -67,10 +67,7 @@ Integrated AI assistance helps users draft and improve appraisal reports.
 
 #### Available Actions
 
-- Generate content
-- Rephrase selected content
 - Improve grammar and readability
-- Translate content
 - Summarize content
 
 #### User Experience
