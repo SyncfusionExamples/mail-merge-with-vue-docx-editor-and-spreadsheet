@@ -238,7 +238,7 @@ namespace WebServiceLibrary
         // MailMerge — same logic as the original controller:
         //   * Decode the base64 .docx payload.
         //   * If mailMergeData is empty, fall back to the bundled
-        //     Excel file at <filesRoot>/Data/CRE_Appraisal_POC.xlsx.
+        //     Excel file at <filesRoot>/Data/Property Portfolio Data.xlsx.
         //   * Execute MailMerge, return the merged SFDT JSON.
         // ------------------------------------------------------------
         public string MailMerge(
@@ -269,7 +269,7 @@ namespace WebServiceLibrary
                     if (string.IsNullOrWhiteSpace(mailMergeDataJson))
                     {
                         string excelPath = Path.Combine(
-                            filesRoot, "Data", "CRE_Appraisal_POC.xlsx");
+                            filesRoot, "Data", "Property Portfolio Data.xlsx");
                         if (!File.Exists(excelPath))
                             throw new FileNotFoundException(
                                 $"Merge-data Excel file not found: {excelPath}");

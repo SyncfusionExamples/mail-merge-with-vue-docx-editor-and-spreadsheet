@@ -98,7 +98,7 @@ data_root      = os.path.join(files_root, "Data")
 # DocumentEditor mail-merge. Both editor surfaces edit this file in
 # place; the SpreadsheetComponent's "Save" overwrites the same file
 # that MailMerge reads on its next call.
-SHARED_DATA_FILE  = "CRE_Appraisal_POC.xlsx"
+SHARED_DATA_FILE  = "Property Portfolio Data.xlsx"
 SHARED_DATA_PATH  = os.path.join(data_root, SHARED_DATA_FILE)
 
 # Make sure the runtime folders exist (idempotent).
@@ -429,7 +429,7 @@ def save_rent_roll():
         # The fileName from the client is purely cosmetic — the save
         # target is always the shared file. We accept it for backward
         # compatibility with the existing frontend but ignore it.
-        file_name = SHARED_DATA_FILE.rsplit('.', 1)[0]  # "CRE_Appraisal_POC"
+        file_name = SHARED_DATA_FILE.rsplit('.', 1)[0]  # "Property Portfolio Data"
 
         pdf_layout_settings = request.form.get('pdfLayoutSettings', '{}')
 

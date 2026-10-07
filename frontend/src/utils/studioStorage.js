@@ -127,7 +127,7 @@ export async function exportDocumentToPdf({ sfdtContent, documentName, returnBlo
 // POST { fileName, documentData (base64 Data URL), mailMergeData } to the
 // backend's MailMerge endpoint and return the merged SFDT. mailMergeData is
 // OPTIONAL: when it's omitted/empty the server falls back to converting
-// wwwroot/Data/CRE_Appraisal_POC.xlsx (XlsIO SaveAsJson) and merges from it.
+// wwwroot/Data/Property Portfolio Data.xlsx (XlsIO SaveAsJson) and merges from it.
 export async function mailMergePreview({ fileName, documentData, mailMergeData = '' }) {
   if (typeof documentData !== 'string' || documentData.length === 0) {
     throw new Error('mailMergePreview: documentData (base64) is required');

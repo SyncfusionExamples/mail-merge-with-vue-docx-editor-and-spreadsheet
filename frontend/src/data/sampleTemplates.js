@@ -15,7 +15,7 @@ export const DOCUMENT_EDITOR_SERVICE_URL =
 // The .docx loaded into the homepage editor on startup. Must exist under
 // <repo>/Files/Templates/ (served by Flask at /Templates/<file>).
 // Change this to whatever document you want the app to open with.
-export const DEFAULT_TEMPLATE_DOCX = 'CRE_Appraisal_All_MergeFields.docx';
+export const DEFAULT_TEMPLATE_DOCX = 'Property Appraisal Report Template.docx';
 
 // ---------------------------------------------------------------------------
 // AI backend — the Process endpoint lives on the same Python wrapper

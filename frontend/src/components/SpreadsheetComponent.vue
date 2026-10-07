@@ -89,8 +89,8 @@ export default {
         // The save target is the SHARED Excel file the Spreadsheet
         // and the DocumentEditor mail-merge both edit. The server
         // ignores the fileName value and writes the canonical
-        // shared file (Files/Data/CRE_Appraisal_POC.xlsx) in place.
-        formData.append("fileName", "CRE_Appraisal_POC");
+        // shared file (Files/Data/Property Portfolio Data.xlsx) in place.
+        formData.append("fileName", "Property Portfolio Data");
         formData.append("saveType", "Xlsx");
         formData.append(
           "pdfLayoutSettings",

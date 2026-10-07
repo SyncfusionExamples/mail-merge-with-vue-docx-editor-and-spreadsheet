@@ -410,7 +410,7 @@ async function handleExportPdf() {
 // ----- Preview with Excel data (mail merge) -----
 // No popup / JSON upload anymore: clicking the button sends the document
 // to the backend WITHOUT mailMergeData — the server reads
-// wwwroot/Data/CRE_Appraisal_POC.xlsx, converts it via XlsIO's
+// wwwroot/Data/Property Portfolio Data.xlsx, converts it via XlsIO's
 // SaveAsJson, and merges. The merged result opens straight in the editor.
 const isMerging = ref(false);
 const mergeError = ref('');
@@ -427,7 +427,7 @@ async function handlePreviewWithExcel() {
       fileName: `${docxBaseName}.docx`,
       documentData: base64DataUrl,
       // Intentionally omitted: the server falls back to
-      // wwwroot/Data/CRE_Appraisal_POC.xlsx when mailMergeData is empty.
+      // wwwroot/Data/Property Portfolio Data.xlsx when mailMergeData is empty.
       mailMergeData: '',
     });
     de.open(mergedSfdt);
@@ -453,7 +453,7 @@ async function handlePreviewWithExcel() {
           type="button"
           class="ts-head-btn"
           :disabled="isMerging"
-          title="Mail-merge the document with the server-side Excel data (CRE_Appraisal_POC.xlsx)."
+          title="Mail-merge the document with the server-side Excel data (Property Portfolio Data.xlsx)."
           @click="handlePreviewWithExcel"
         >{{ isMerging ? 'Merging…' : 'Preview with Data' }}</button>
         <button
@@ -518,7 +518,7 @@ async function handlePreviewWithExcel() {
     <p v-if="mergeError" class="ts-load-error" role="alert">{{ mergeError }}</p>
 
     <!-- Edit Excel modal: hosts the SpreadsheetComponent (which loads
-         the shared CRE_Appraisal_POC.xlsx from the Python service on
+         the shared Property Portfolio Data.xlsx from the Python service on
          `created`). The Syncfusion Dialog controls open/close via the
          `:visible` prop; we drive it from a ref so we can use v-show
          (instead of v-if) to keep the Dialog + Spreadsheet mounted
