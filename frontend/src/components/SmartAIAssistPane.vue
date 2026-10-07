@@ -80,16 +80,6 @@ const INTENT_ACTIONS = [
   { intent: AiIntent.Summarize, label: 'Summarize selection' },
 ];
 
-onMounted(() => {
-  messages.value = [
-    {
-      role: 'ai',
-      text: 'Hi! I can <strong>generate</strong> content, or <strong>rephrase</strong>, <strong>translate</strong>, <strong>grammar-check</strong>, and <strong>summarize</strong> selected text. Pick a suggestion below or type a prompt.',
-      plain: '',
-      intent: null,
-    },
-  ];
-});
 
 async function scrollConvo() {
   await nextTick();
@@ -108,7 +98,8 @@ function selectionText() {
 
 // Map a user prompt to an intent: if a selection exists and the prompt
 // (or chip) mentions refine-actions, act on the selection; otherwise the
-// prompt is a plain Generate request.
+// prompt is a Q&A question about the document (so the model can use the
+// document as context, not a free-form Generate that ignores the file).
 function detectIntent(prompt) {
   const p = (prompt || '').toLowerCase();
   const sel = selectionText();
@@ -116,7 +107,10 @@ function detectIntent(prompt) {
   if (sel && /grammar|fix|correct|spelling/.test(p)) return AiIntent.Grammar;
   if (sel && /translate/.test(p)) return AiIntent.Translate;
   if (sel && /summari|tl;?dr/.test(p)) return AiIntent.Summarize;
-  return AiIntent.Generate;
+  // Free-text questions with or without a selection default to Q&A
+  // — the AI will use the full document as context, exactly like the
+  // react-docx-editor-with-ai sample's "context-aware chat" pattern.
+  return AiIntent.QandA;
 }
 
 // Document-level chip clicks (e.g. "Summarize this document") should
@@ -141,39 +135,64 @@ async function ask(prompt, forcedIntent = null) {
   //   1) forcedIntent from a chip click (we know what the user wants)
   //   2) explicit selection-aware detection (keyword + selection present)
   //   3) document-level detection (chip clicked but no selection) → fetch full doc
-  //   4) Generate
+  //   4) QandA — free-text question about the document. The AI uses
+  //      the full document as context so it actually answers about
+  //      THIS document instead of inventing data.
   let intent = forcedIntent
     || (sel ? detectIntent(cleanPrompt) : null)
     || detectDocumentLevelIntent(cleanPrompt)
-    || AiIntent.Generate;
+    || AiIntent.QandA;
 
-  let source;
-  if (intent === AiIntent.Generate) {
+  // documentContext is only used by the QandA intent; selection-aware
+  // intents (Rephrase / Grammar / Translate) act on the selection, and
+  // Summarize / Rephrase / Grammar chip clicks (no selection) act on
+  // the full document. Either way, the "source" is what the AI
+  // actually works on.
+  let source = '';
+  let documentContext = '';
+  if (intent === AiIntent.QandA) {
+    // Q&A — read the full document as context. We pop the Thinking
+    // placeholder below so the chat always shows the same loading
+    // state; the "Reading…" notice is the only thing the user sees
+    // while we wait on the blob.
+    isThinking.value = true;
+    await pushMsg('ai', '<em>Reading the full document…</em>', '', 'thinking');
+    const fullDoc = truncate(await fullDocumentText());
+    messages.value.pop();
+    if (!fullDoc) {
+      await pushMsg('ai', 'The document is empty or has no readable text. Type a prompt or add content first.');
+      isThinking.value = false;
+      return;
+    }
+    documentContext = fullDoc;
+    // source stays empty — the user message for QandA is just the
+    // question (plus the context block the prompt builder appends).
+    source = cleanPrompt;
+  } else if (intent === AiIntent.Generate) {
     source = cleanPrompt;
   } else {
-    // For refine actions we prefer the current selection, falling back to
-    // the whole document when the user clicked a document-level chip.
-    // fullDocumentText() is async because Syncfusion's getText /
-    // saveAsBlob returns a Promise / Blob.
+    // Selection-aware intent: prefer the current selection, falling
+    // back to the whole document when the user clicked a document-
+    // level chip.
     let fullDoc = '';
     if (!sel) {
       isThinking.value = true;
       await pushMsg('ai', '<em>Reading the full document…</em>', '', 'thinking');
       fullDoc = truncate(await fullDocumentText());
-      // Pop the "Reading…" placeholder — we re-push a Thinking bubble
-      // below so the chat always shows the same loading state.
       messages.value.pop();
     }
     source = sel || fullDoc;
     if (!source || source.length < 3) {
       await pushMsg('ai', 'The document is empty or has no readable text. Type a prompt or add content first.');
+      isThinking.value = false;
       return;
     }
   }
 
-  // Show what the user asked. For selection intents, label with the
-  // (possibly truncated) source so the chat makes the action obvious.
-  const userLabel = intent === AiIntent.Generate
+  // Show what the user asked. For Q&A, show the question; for
+  // selection intents, label with the (possibly truncated) source so
+  // the chat makes the action obvious.
+  const userLabel = intent === AiIntent.QandA
     ? cleanPrompt
     : `${cleanPrompt || 'Act on selection:'} <em>“${source.slice(0, 140)}${source.length > 140 ? '…' : ''}”</em>`;
   await pushMsg('user', userLabel);
@@ -183,6 +202,7 @@ async function ask(prompt, forcedIntent = null) {
   try {
     const options = buildPrompt(intent, source, {
       userHint: intent === AiIntent.Generate ? cleanPrompt : '',
+      documentContext,  // only consumed by the QandA intent today
     });
     const out = await getAzureChatAIRequest(options);
     messages.value.pop(); // remove Thinking bubble
@@ -207,6 +227,25 @@ function onSend() {
   ask(value);
 }
 
+// Action-button label/title for a chat message. Generate + QandA
+// replies (free-text / no selection) land at the caret; selection-
+// aware replies (Rephrase / Grammar / Translate) replace the
+// selection. We read the *current* selection in the click handler's
+// context so the label reflects what the editor can do right now.
+function isInsertAtCaret(msg) {
+  if (!msg) return true;
+  if (msg.intent === AiIntent.Generate) return true;
+  if (msg.intent === AiIntent.QandA) return true;
+  if (msg.intent && !selectionText()) return true;
+  return false;
+}
+function insertButtonLabel(msg) {
+  return isInsertAtCaret(msg) ? '+' : 'Replace selection';
+}
+function insertButtonTitle(msg) {
+  return isInsertAtCaret(msg) ? 'Insert at caret' : 'Replace selection';
+}
+
 // Insert an AI reply into the document. For Generate the text lands at
 // the caret; for selection intents it REPLACES the selected text.
 // For document-level intents (Summarize / Rephrase / Fix grammar
@@ -225,7 +264,15 @@ async function insertReply(msg) {
   if (!de) return;
   try {
     de.focusIn();
-    const replaceSelection = !!(msg.intent && msg.intent !== AiIntent.Generate && selectionText());
+    // A reply should REPLACE the existing selection only when the
+    // user explicitly asked the AI to act on that selection
+    // (Rephrase / Grammar / Translate / selection-aware Summarize).
+    // Generate + QandA replies always land at the caret so we
+    // don't lose the user's existing selection by accident.
+    const isSelectionAction = msg.intent
+      && msg.intent !== AiIntent.Generate
+      && msg.intent !== AiIntent.QandA;
+    const replaceSelection = !!(isSelectionAction && selectionText());
     if (replaceSelection) {
       if (de.editor && typeof de.editor.delete === 'function') {
         de.editor.delete();
@@ -354,9 +401,9 @@ async function copyReply(msg) {
         <footer v-if="m.role === 'ai' && m.plain" class="ts-ai-msg-actions">
           <button
             type="button"
-            :title="m.intent === AiIntent.Generate || (m.intent && !selectionText()) ? 'Insert at caret' : 'Replace selection'"
+            :title="insertButtonTitle(m)"
             @click="insertReply(m)"
-          >{{ m.intent === AiIntent.Generate || (m.intent && !selectionText()) ? '+' : 'Replace selection' }}</button>
+          >{{ insertButtonLabel(m) }}</button>
           <button
             type="button"
             class="ts-ai-copy-btn"

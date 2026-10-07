@@ -102,10 +102,12 @@ h1, h2, h3, h4 {
 .ts-viewer-body {
   flex: 1 1 auto;
   display: grid;
-  /* AI pane (left) | editor canvas. The right-rail merge-fields panel
-     was removed; the custom "Mail Merge" ribbon tab now drives
-     insertion from inside the editor itself. */
-  grid-template-columns: 300px 1fr;
+  /* Editor canvas | AI pane (right). The right-rail merge-fields
+     panel was removed; the custom "Mail Merge" ribbon tab now drives
+     insertion from inside the editor itself. The AI pane is wider
+     than the original left rail (400px vs 300px) so chat bubbles and
+     diff panes have more breathing room. */
+  grid-template-columns: 1fr 400px;
   min-height: 0;
 }
 .ts-viewer-canvas {
@@ -150,10 +152,12 @@ h1, h2, h3, h4 {
   z-index: 5;
 }
 
-/* ---------- Smart AI Assist pane (left, chat structure) ---------- */
+/* ---------- Smart AI Assist pane (right, chat structure) ---------- */
 .ts-ai-panel {
   background: #ffffff;
-  border-right: 1px solid #e5e7eb;
+  /* The AI pane now lives on the right, so the divider sits on its
+     left edge instead of its right. */
+  border-left: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   min-height: 0;
