@@ -298,8 +298,7 @@ from System.IO import SeekOrigin
 
 # ---------------------------------------------------------------------------
 # Register the Syncfusion license
-# LICENSE_KEY = os.environ.get("SYNCFUSION_LICENSE_KEY", "")
-LICENSE_KEY = "NxYtFisQPR08Cit/VkN+XU9HcVRAXWFPY1J2WGBZb191flVPal9TT3RfQFtjQH1Td0BjUHpfdnRWTmtfVA==;NxYtGyMROh0gHDMgDk1jWU9FaFxFVmFJfFVrRGNEfF5gdVBMYVlbRXFUQF1hT35adUViXH5bc3dVRmBaWkdz;IAk8BicRIAEqCzQhAR8kAxMHIgRJXmZXf011Qmhbf1x2aVRGfV9RVHdaSFhrQ35VfUdjW3leeXdVR2VZWUZxWEddYUJ9Vg=="
+LICENSE_KEY = _os.environ.get("SYNCFUSION_LICENSE_KEY", "")
 SyncfusionLicenseProvider.RegisterLicense(LICENSE_KEY)
 
 # ---------------------------------------------------------------------------
