@@ -59,6 +59,10 @@ Generate business documents by combining document templates with structured spre
 - Support for complex reports containing summaries and detailed schedules
 - Export merged documents to DOCX and PDF
 
+> **Note**
+>
+> After Mail Merge is executed, the generated document contains actual values rather than mail merge fields. To generate another report using updated spreadsheet data, use the **Load Word Template** option to reload the original template before executing Mail Merge again.
+
 ---
 
 ### AI Assist
@@ -139,7 +143,7 @@ py app.py
 Service URL:
 
 ```text
-
+http://127.0.0.1:5000/
 ```
 
 ---
@@ -173,8 +177,8 @@ export const DOCUMENT_EDITOR_SERVICE_URL =
 **Spreadsheet** (in `src/components/SpreadsheetComponent.vue`)
 
 ```javascript
-openUrl:  "Open",
-saveUrl:  "Save",
+openUrl:  "http://127.0.0.1:5000/Open",
+saveUrl:  "http://127.0.0.1:5000/Save",
 // Shared Excel: GET  /OpenRentRoll
 //               POST /SaveRentRoll
 ```
@@ -182,7 +186,7 @@ saveUrl:  "Save",
 **AI Process** (in `src/ai/ai-models.js`)
 
 ```javascript
-const AI_API_BASE = 'api/DocumentEditor';
+const AI_API_BASE = 'http://localhost:5000/api/DocumentEditor';
 //   POST /Process
 ```
 
