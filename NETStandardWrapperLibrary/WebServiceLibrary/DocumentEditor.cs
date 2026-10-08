@@ -137,35 +137,21 @@ namespace WebServiceLibrary
         // Save — persist SFDT to disk as the requested .docx file.
         // Replaces existing file at the same path (FileMode.Create).
         // ------------------------------------------------------------
-        public void SaveToFile(string content, string fileName, string format, string templatesFolder)
+        public byte[] SaveToFile(string content, string fileName, string format, string templatesFolder)
         {
             if (string.IsNullOrEmpty(content))
                 throw new ArgumentException("content (SFDT) is required.");
-            if (string.IsNullOrEmpty(fileName))
-                fileName = "Document" + ResolveFormatSuffix(format, fileName);
 
             string fmt = ResolveFormatSuffix(format, fileName);
-            string safeName = fileName.EndsWith(fmt, StringComparison.OrdinalIgnoreCase)
-                ? fileName
-                : fileName + fmt;
-
-            if (!IsValidFileName(safeName))
-                throw new ArgumentException("Invalid filename format.");
-
-            string savePath = Path.Combine(templatesFolder, Path.GetFileName(safeName));
-            string fullPath = Path.GetFullPath(savePath);
-            string allowedPath = Path.GetFullPath(templatesFolder);
-            if (!fullPath.StartsWith(allowedPath, StringComparison.OrdinalIgnoreCase))
-                throw new UnauthorizedAccessException(
-                    "Access denied: Cannot save file outside allowed directory.");
 
             WDocument document = EJWordDocument.Save(content);
+
             try
             {
-                using (FileStream fs = new FileStream(
-                    savePath, FileMode.Create, FileAccess.ReadWrite))
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    document.Save(fs, ParseWFormatType(fmt));
+                    document.Save(ms, ParseWFormatType(fmt));
+                    return ms.ToArray();
                 }
             }
             finally

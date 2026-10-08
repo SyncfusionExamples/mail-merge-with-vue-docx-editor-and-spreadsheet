@@ -91,13 +91,13 @@ export async function exportDocumentToPdf({ sfdtContent, documentName, returnBlo
     throw new Error('exportDocumentToPdf: sfdtContent is required');
   }
   const baseName = String(documentName || 'Document').replace(/\.docx$/i, '').trim() || 'Document';
-  const res = await fetch(DOC_EDITOR_EXPORT_URL, {
+  const res = await fetch('https://document.syncfusion.com/web-services/docx-editor/api/documenteditor/Export', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       Content: sfdtContent,
-      FileName: `${baseName}.pdf`,
-      Format: 'Pdf',
+      FileName: `${baseName}`,
+      Format: '.Pdf',
     }),
   });
   if (!res.ok) {

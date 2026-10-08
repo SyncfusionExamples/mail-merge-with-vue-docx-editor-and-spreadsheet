@@ -7,12 +7,14 @@
       :created="created"
       :fileMenuBeforeOpen="fileMenuBeforeOpen"
       :fileMenuItemSelect="fileMenuItemSelect"
+      :dialogBeforeOpen="dialogBeforeOpen"
     ></ejs-spreadsheet>
   </div>
 </template>
 
 <script>
 import { SpreadsheetComponent as EjsSpreadsheet } from "@syncfusion/ej2-vue-spreadsheet";
+import { getApiPath } from "../utils/apiPaths.js";
 
 export default {
   name: "SpreadsheetComponent",
@@ -20,8 +22,8 @@ export default {
     "ejs-spreadsheet": EjsSpreadsheet,
   },
   data: () => ({
-    openUrl: "http://127.0.0.1:5000/Open",
-    saveUrl: "http://127.0.0.1:5000/Save",
+    openUrl: "Open",
+    saveUrl: "Save",
     spreadsheet: null,
   }),
   methods: {
@@ -44,9 +46,10 @@ export default {
       this.loadRentRoll(spreadsheet);
     },
     loadRentRoll(spreadsheet) {
+      spreadsheet.showSpinner();
       // Call the new backend endpoint that returns the JSON produced by
       // SpreadsheetEditor.Open(byte[]) for the file shipped in the Files folder.
-      fetch("http://127.0.0.1:5000/OpenRentRoll", { method: "GET" })
+      fetch(getApiPath("/OpenRentRoll"), { method: "GET" })
         .then((response) => {
           if (!response.ok) {
             throw new Error(`Failed to load rent roll: ${response.status}`);
@@ -59,10 +62,12 @@ export default {
           fileBlob.text().then((jsonText) => {
             const workbookJson = JSON.parse(jsonText);
             spreadsheet.openFromJson({ file: workbookJson });
+            spreadsheet.hideSpinner();
           });
         })
         .catch((err) => {
           console.error("OpenRentRoll failed:", err);
+          spreadsheet.hideSpinner();
         });
     },
     fileMenuBeforeOpen() {
@@ -73,6 +78,13 @@ export default {
     fileMenuItemSelect(args) {
       // Handle the custom "Save" menu item click via the fileMenuItemSelect event.
       if (args && args.item && args.item.text === "Save") {
+        this.saveRentRoll();
+      }
+    },
+    dialogBeforeOpen(args) {
+      // Trigger before the save performing default save operation through Spreadsheet UI.
+      if (args.dialogName === 'Save As') {
+        args.cancel = true;
         this.saveRentRoll();
       }
     },
@@ -98,7 +110,7 @@ export default {
         );
 
         // Call the SaveRentRoll endpoint that replaces the existing file
-        fetch("http://127.0.0.1:5000/SaveRentRoll", {
+        fetch(getApiPath("/SaveRentRoll"), {
           method: "POST",
           body: formData,
         })

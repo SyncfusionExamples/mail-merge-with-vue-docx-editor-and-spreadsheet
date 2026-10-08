@@ -544,6 +544,28 @@ async function handleExportPdf() {
 // SaveAsJson, and merges. The merged result opens straight in the editor.
 const isMerging = ref(false);
 const mergeError = ref('');
+const isReloadingTemplate = ref(false);
+
+// "Load Word Template" button handler — reloads the same default
+// .docx the editor opened on first load. Mirrors the SFDT fetch +
+// de.open() flow used by the @created handler so the user can
+// "start over" with the clean file on disk without leaving the page.
+async function handleLoadTemplate() {
+  const de = getEditor();
+  if (!de || isReloadingTemplate.value) return;
+  isReloadingTemplate.value = true;
+  try {
+    const { sfdt } = await fetchSfdtFromDocx({ url: docxUrl });
+    de.open(sfdt);
+    dirty.value = false;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Template reload failed:', err);
+    mergeError.value = err.message || String(err) || 'Template reload failed.';
+  } finally {
+    isReloadingTemplate.value = false;
+  }
+}
 
 async function handlePreviewWithExcel() {
   const de = getEditor();
@@ -579,6 +601,16 @@ async function handlePreviewWithExcel() {
         <h2>Mail Merge with DOCX Editor using Excel Data</h2>
       </div>
       <div class="ts-viewer-actions">
+        <button
+          type="button"
+          class="ts-head-btn"
+          :disabled="isReloadingTemplate"
+          :title="`Reload the default Word template (${DEFAULT_TEMPLATE_DOCX}).`"
+          @click="handleLoadTemplate"
+        >
+          <span aria-hidden="true" />
+          {{ isReloadingTemplate ? 'Loading…' : 'Load Word Template' }}
+        </button>
         <button
           type="button"
           class="ts-head-btn"
