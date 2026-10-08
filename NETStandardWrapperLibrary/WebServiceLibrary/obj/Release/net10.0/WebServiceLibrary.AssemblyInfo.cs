@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WebServiceLibrary")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c1a656b59202e418f146f6d15bcf981f4248e044")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2116c8a28883f2ca3ce9c0b8f5c524fc015ad27e")]
 [assembly: System.Reflection.AssemblyProductAttribute("WebServiceLibrary")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WebServiceLibrary")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

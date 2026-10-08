@@ -1,24 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj": {}
+    "D:\\EJ2\\Samples\\presale_demo\\mail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj": {}
   },
   "projects": {
-    "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj": {
+    "D:\\EJ2\\Samples\\presale_demo\\mail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
+        "projectUniqueName": "D:\\EJ2\\Samples\\presale_demo\\mail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj",
         "projectName": "WebServiceLibrary",
-        "projectPath": "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\WebServiceLibrary.csproj",
-        "packagesPath": "C:\\Users\\MohammedAffanSaqibHu\\.nuget\\packages\\",
-        "outputPath": "D:\\New folder\\New folder\\tmail-merge-with-vue-docx-editor-and-spreadsheet\\.NET Standard Wrapper Library\\WebServiceLibrary\\obj\\",
+        "projectPath": "D:\\EJ2\\Samples\\presale_demo\\mail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\WebServiceLibrary.csproj",
+        "packagesPath": "C:\\Users\\SridharAlagiriSamy\\.nuget\\packages\\",
+        "outputPath": "D:\\EJ2\\Samples\\presale_demo\\mail-merge-with-vue-docx-editor-and-spreadsheet\\NETStandardWrapperLibrary\\WebServiceLibrary\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\MohammedAffanSaqibHu\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\SridharAlagiriSamy\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -28,10 +27,14 @@
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {}
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nexus.syncfusioninternal.com/repository/aspnet-release/": {},
+          "https://nexus.syncfusioninternal.com/repository/ej2-nuget-hotfix/": {},
+          "https://nexus.syncfusioninternal.com/repository/nuget-servicepack/": {}
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -46,12 +49,17 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
+            "HarfBuzzSharp.NativeAssets.Linux": {
+              "target": "Package",
+              "version": "[8.3.1.2, )"
+            },
             "Microsoft.AspNetCore.Mvc.Abstractions": {
               "target": "Package",
               "version": "[2.3.0, )"
@@ -96,12 +104,26 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
+              "version": "[10.0.12, 10.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[10.0.12, 10.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.linux-x64",
+              "version": "[10.0.12, 10.0.12]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.112/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -376,6 +398,11 @@
             "System.Xml.XPath": "(,4.3.32767]",
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
+        }
+      },
+      "runtimes": {
+        "linux-x64": {
+          "#import": []
         }
       }
     }

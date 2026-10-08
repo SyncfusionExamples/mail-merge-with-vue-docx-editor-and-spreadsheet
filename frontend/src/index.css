@@ -599,7 +599,6 @@ h1, h2, h3, h4 {
   flex: 0 0 auto;
 }
 .ts-excel-dialog .e-dlg-content {
-  padding: 0 !important;
   display: flex !important;
   flex-direction: column;
   flex: 1 1 auto;

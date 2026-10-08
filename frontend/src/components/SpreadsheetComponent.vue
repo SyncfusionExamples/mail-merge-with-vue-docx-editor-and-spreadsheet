@@ -20,8 +20,8 @@ export default {
     "ejs-spreadsheet": EjsSpreadsheet,
   },
   data: () => ({
-    openUrl: "http://127.0.0.1:5000/Open",
-    saveUrl: "http://127.0.0.1:5000/Save",
+    openUrl: "Open",
+    saveUrl: "Save",
     spreadsheet: null,
   }),
   methods: {
@@ -46,7 +46,7 @@ export default {
     loadRentRoll(spreadsheet) {
       // Call the new backend endpoint that returns the JSON produced by
       // SpreadsheetEditor.Open(byte[]) for the file shipped in the Files folder.
-      fetch("http://127.0.0.1:5000/OpenRentRoll", { method: "GET" })
+      fetch("OpenRentRoll", { method: "GET" })
         .then((response) => {
           if (!response.ok) {
             throw new Error(`Failed to load rent roll: ${response.status}`);
@@ -98,7 +98,7 @@ export default {
         );
 
         // Call the SaveRentRoll endpoint that replaces the existing file
-        fetch("http://127.0.0.1:5000/SaveRentRoll", {
+        fetch("SaveRentRoll", {
           method: "POST",
           body: formData,
         })

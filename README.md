@@ -88,10 +88,10 @@ Users can:
 ### Navigate to the .NET Wrapper Project
 
 ```bash
-cd .NET Standard Wrapper Library
+cd NETStandardWrapperLibrary
 ```
 
-### Build and Publish the .NET Standard Wrapper Library
+### Build and Publish the NETStandardWrapperLibrary
 
 ```bash
 dotnet build -c Release
@@ -139,7 +139,7 @@ py app.py
 Service URL:
 
 ```text
-http://127.0.0.1:5000/
+
 ```
 
 ---
@@ -173,8 +173,8 @@ export const DOCUMENT_EDITOR_SERVICE_URL =
 **Spreadsheet** (in `src/components/SpreadsheetComponent.vue`)
 
 ```javascript
-openUrl:  "http://127.0.0.1:5000/Open",
-saveUrl:  "http://127.0.0.1:5000/Save",
+openUrl:  "Open",
+saveUrl:  "Save",
 // Shared Excel: GET  /OpenRentRoll
 //               POST /SaveRentRoll
 ```
@@ -182,7 +182,7 @@ saveUrl:  "http://127.0.0.1:5000/Save",
 **AI Process** (in `src/ai/ai-models.js`)
 
 ```javascript
-const AI_API_BASE = 'http://localhost:5000/api/DocumentEditor';
+const AI_API_BASE = 'api/DocumentEditor';
 //   POST /Process
 ```
 

@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v10.0": {
       "WebServiceLibrary/1.0.0": {
         "dependencies": {
+          "HarfBuzzSharp.NativeAssets.Linux": "8.3.1.2",
           "Microsoft.AspNetCore.Mvc.Abstractions": "2.3.0",
           "Microsoft.AspNetCore.Mvc.Core": "2.3.0",
           "Newtonsoft.Json": "13.0.4",
@@ -38,6 +39,65 @@
           "lib/net10.0/HarfBuzzSharp.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "14.2.1.1"
+          }
+        }
+      },
+      "HarfBuzzSharp.NativeAssets.Linux/8.3.1.2": {
+        "runtimeTargets": {
+          "runtimes/linux-arm/native/libHarfBuzzSharp.so": {
+            "rid": "linux-arm",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-arm64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-arm64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-loongarch64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-loongarch64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-musl-arm/native/libHarfBuzzSharp.so": {
+            "rid": "linux-musl-arm",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-musl-arm64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-musl-arm64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-musl-loongarch64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-musl-loongarch64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-musl-riscv64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-musl-riscv64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-musl-x64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-musl-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-riscv64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-riscv64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-x64/native/libHarfBuzzSharp.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-x86/native/libHarfBuzzSharp.so": {
+            "rid": "linux-x86",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
           }
         }
       },
@@ -816,6 +876,13 @@
       "sha512": "sha512-7XDWIol7Iq0Lw2MxJLjI3ec1mGQspC5BM0Ao85TDCSMgr94mmdRReSO00ZxHiy+j8OMpOkuu8B9x2brhKSlWaw==",
       "path": "harfbuzzsharp/14.2.1.1",
       "hashPath": "harfbuzzsharp.14.2.1.1.nupkg.sha512"
+    },
+    "HarfBuzzSharp.NativeAssets.Linux/8.3.1.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-//Zak/ddP1XC2tMcWNEQboiFNmsQrZBnnzUyJAmibrZsd/0P1rvCaXip7MtPGkuvfwmu8Im39RytFDZERWySaw==",
+      "path": "harfbuzzsharp.nativeassets.linux/8.3.1.2",
+      "hashPath": "harfbuzzsharp.nativeassets.linux.8.3.1.2.nupkg.sha512"
     },
     "HarfBuzzSharp.NativeAssets.macOS/14.2.1.1": {
       "type": "package",

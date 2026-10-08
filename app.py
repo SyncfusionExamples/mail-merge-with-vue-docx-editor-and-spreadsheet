@@ -27,16 +27,31 @@ if not _os.environ.get("DOTNET_ROOT"):
     # Best-effort: pick the newest installed Microsoft.NETCore.App.
     _candidate = None
     for _base in (
-        r"C:\Program Files\dotnet\shared\Microsoft.NETCore.App",
-        "/usr/share/dotnet/shared/Microsoft.NETCore.App",
-        "/usr/local/share/dotnet/shared/Microsoft.NETCore.App",
+        r"C:\Program Files\dotnet",
+        "/usr/share/dotnet",
+        "/usr/local/share/dotnet",
+        "/usr/lib/dotnet",
     ):
-        if os.path.isdir(_base):
+        if os.path.isdir(os.path.join(_base, "host", "fxr")):
             _candidate = _base
             break
     if _candidate:
         _os.environ["DOTNET_ROOT"] = _candidate
 _os.environ.setdefault("DOTNET_ROLL_FORWARD", "LatestMajor")
+
+# Pre-configure LD_LIBRARY_PATH on Linux for native library discovery (especially SkiaSharp)
+# This MUST run before CLR initialization to ensure native libraries are found when the runtime
+# loads managed assemblies that depend on native .so files (libSkiaSharp.so, libgdiplus, etc.)
+if _sys.platform.startswith("linux"):
+    # System graphics libraries that SkiaSharp and other rendering libraries depend on
+    base_ld_paths = "/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu"
+    existing_ld = _os.environ.get("LD_LIBRARY_PATH", "").strip()
+    if existing_ld:
+        new_ld = base_ld_paths + ":" + existing_ld
+    else:
+        new_ld = base_ld_paths
+    _os.environ["LD_LIBRARY_PATH"] = new_ld
+    print(f"[app] Pre-configured LD_LIBRARY_PATH for Linux: {new_ld[:120]}...", flush=True)
 
 # Import clr AFTER the env-var setup above.
 import clr  # noqa: E402  (must come after PYTHONNET_RUNTIME setup)
@@ -51,6 +66,28 @@ static_url_path=''
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024 # 500 MB
 app.config['MAX_FORM_MEMORY_SIZE'] = 500 * 1024 * 1024 # 500 MB
 
+# ============================================================================
+# Sub-path support for GCP Load Balancer path mapping
+# ============================================================================
+# When deployed behind a load balancer with path mapping (e.g., 
+# /vue-spreadsheet-docx-mail-merge → /app), the application can still be
+# accessed at both the root path (/) and the sub-path. This is controlled
+# via the BASE_PATH environment variable.
+#
+# Example:
+#   BASE_PATH = '/vue-spreadsheet-docx-mail-merge'
+#   Browser: https://syncfusiondemo.com/vue-spreadsheet-docx-mail-merge
+#   GCP routes to: /app/ → Azure App Service
+#   Flask receives: GET /vue-spreadsheet-docx-mail-merge
+#   Routes match: Both @app.route('/') and @app.route('/vue-spreadsheet-docx-mail-merge/')
+#   Returns: index.html (SPA root)
+#
+# The BASE_PATH should also be set in the frontend build:
+#   VITE_APP_BASE_PATH = '/vue-spreadsheet-docx-mail-merge/'
+#   This ensures all assets are referenced with the full path.
+# ============================================================================
+BASE_PATH = os.environ.get('BASE_PATH', '').rstrip('/')
+print(f"[app] BASE_PATH for sub-path routing: '{BASE_PATH}' (empty = root only)", flush=True)
 
 CORS(
     app,
@@ -71,7 +108,7 @@ def add_cors_on_errors(resp):
 # ============================================================================
 # Filesystem layout
 # ----------------------------------------------------------------------------
-#   <cwd>/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net10.0/publish/
+#   <cwd>/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/
 #       Compiled .NET wrappers (Spreadsheet + DocumentEditor).
 #   <cwd>/Files/Templates/
 #       The .docx templates the DocumentEditor opens by default
@@ -86,10 +123,41 @@ def add_cors_on_errors(resp):
 #       edits stay in sync between the two editor surfaces.
 # ============================================================================
 current_working_directory = os.getcwd()
-publish_base = (
-    current_working_directory
-    + "/.NET Standard Wrapper Library/WebServiceLibrary/bin/Release/net10.0/publish/"
+
+# Try multiple possible publish locations, in order of preference:
+#   1. net10.0/publish/           (preferred — matches our target framework)
+#   2. netstandard2.0/publish/    (fallback — compatible but older)
+#   3. Current directory           (last resort — some Docker layouts flatten here)
+_publish_candidate_a = os.path.join(
+    current_working_directory,
+    "NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/"
 )
+_publish_candidate_b = os.path.join(
+    current_working_directory,
+    "NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/linux-x64/publish/"
+)
+_publish_candidate_c = os.path.join(
+    current_working_directory,
+    "NETStandardWrapperLibrary/WebServiceLibrary/runtimes/"
+)
+
+# Use the first candidate that exists
+publish_base = None
+for candidate in [_publish_candidate_a, _publish_candidate_b]:
+    if os.path.isdir(candidate):
+        publish_base = candidate
+        break
+
+if not publish_base:
+    # Fallback to candidate_c if primary locations don't exist
+    if os.path.isdir(_publish_candidate_c):
+        publish_base = _publish_candidate_c
+    else:
+        # Last resort: use candidate_a even if it doesn't exist yet
+        publish_base = _publish_candidate_a
+
+print(f"[app] Using publish base: {publish_base}", flush=True)
+
 files_root     = os.path.join(current_working_directory, "Files")
 templates_root = os.path.join(files_root, "Templates")
 data_root      = os.path.join(files_root, "Data")
@@ -109,21 +177,74 @@ os.makedirs(data_root, exist_ok=True)
 # Load the .NET wrapper assemblies via pythonnet.
 # ----------------------------------------------------------------------------
 # We add the publish folder to sys.path so pythonnet can locate
-# every DLL by simple name. The .NET 8 BCL types (System.Buffers,
+# every DLL by simple name. The .NET BCL types (System.Buffers,
 # System.Memory, Microsoft.Bcl.AsyncInterfaces, System.Text.Json, etc.)
-# are resolved automatically by the .NET 8 host — we don't need to
+# are resolved automatically by the .NET host — we don't need to
 # AddReference them explicitly.
 # ============================================================================
-# On Windows, pythonnet's bundled .NET 8 runtime sometimes fails to
-# auto-resolve runtimes/<rid>/native/libSkiaSharp.dll on its own.
-# Adding the native folder to PATH at startup makes SkiaSharp
-# (and therefore DocIORenderer + the spreadsheet) load cleanly in
-# dev. The Docker image already has the right system libraries.
-_native_dir = os.path.join(publish_base, "runtimes", "win-x64", "native")
-if os.path.isdir(_native_dir):
-    os.environ["PATH"] = _native_dir + os.pathsep + os.environ.get("PATH", "")
+# Native runtimes may be placed in either of these locations, depending on
+# how `dotnet publish` was invoked:
+#   1) <publishBase>/runtimes/linux-x64/native/   (default NuGet layout)
+#   2) <publishBase>/runtimes/win-x64/native/     (default NuGet layout for Windows)
+#   3) <publishBase>/                              (when the publish RID
+#                                                   matches the container RID
+#                                                   and NuGet flattens the layout)
+# Check all locations, and also always include <publishBase> itself since the .so files
+# need to be on LD_LIBRARY_PATH (Linux) or PATH (Windows) for the .NET runtime's 
+# dlopen()/LoadLibrary() to succeed.
+# ============================================================================
+runtimes_base = os.path.join(publish_base, "runtimes")
+
+native_search_dirs = []
+if _sys.platform.startswith("win"):
+    # Windows: Check win-x64/native and root
+    native_search_dirs = [
+        os.path.join(runtimes_base, "win-x64", "native"),
+        publish_base,
+    ]
+elif _sys.platform.startswith("linux"):
+    # Linux: Check linux-x64/native and root
+    native_search_dirs = [
+        os.path.join(runtimes_base, "linux-x64", "native"),
+        publish_base,
+    ]
+
+# Add all found native directories to PATH (Windows) or LD_LIBRARY_PATH (Linux)
+# IMPORTANT: Build the full LD_LIBRARY_PATH BEFORE the loop to avoid overwriting
+if _sys.platform.startswith("linux"):
+    # Collect all native directories that exist
+    found_native_dirs = []
+    for native_dir in native_search_dirs:
+        if os.path.isdir(native_dir):
+            found_native_dirs.append(native_dir)
+    
+    # System graphics libraries — MUST include these for SkiaSharp to work
+    base_ld_paths = "/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu"
+    
+    # Build complete LD_LIBRARY_PATH: native dirs + system libs + existing value
+    ld_parts = found_native_dirs + [base_ld_paths]
+    existing_ld = os.environ.get("LD_LIBRARY_PATH", "").strip()
+    if existing_ld:
+        ld_parts.append(existing_ld)
+    
+    new_ld = ":".join(ld_parts)
+    os.environ["LD_LIBRARY_PATH"] = new_ld
+    
+    print(f"[app] Configured LD_LIBRARY_PATH for Linux graphics libraries", flush=True)
+    for native_dir in found_native_dirs:
+        print(f"[app]   - Added: {native_dir}", flush=True)
+    print(f"[app]   - Added system graphics paths", flush=True)
+    print(f"[app] Full LD_LIBRARY_PATH: {new_ld[:100]}...", flush=True)
+
+elif _sys.platform.startswith("win"):
+    # Windows: Add native directories to PATH
+    for native_dir in native_search_dirs:
+        if os.path.isdir(native_dir):
+            os.environ["PATH"] = native_dir + os.pathsep + os.environ.get("PATH", "")
+            print(f"[app] Added Windows native path: {native_dir}", flush=True)
 
 _sys.path.insert(0, publish_base)
+print(f"[app] Added publish base to sys.path: {publish_base}", flush=True)
 
 _ASSEMBLY_NAMES = [
     "Syncfusion.EJ2.Spreadsheet",
@@ -155,7 +276,15 @@ _ASSEMBLY_NAMES = [
 ]
 
 for _name in _ASSEMBLY_NAMES:
-    clr.AddReference(_name)
+    try:
+        clr.AddReference(_name)
+        print(f"[app] ✓ Loaded {_name}", flush=True)
+    except Exception as e:
+        print(f"[app] ✗ Failed to load {_name}: {e}", flush=True)
+        # Critical assemblies for PDF export — fail fast
+        if _name in ("SkiaSharp", "Syncfusion.DocIORenderer.Portable", "Syncfusion.Pdf.Portable"):
+            print(f"[app] FATAL: {_name} is required for PDF export!", flush=True)
+            raise
 
 # ============================================================================
 # Python-side imports from the C# wrapper namespace.
@@ -168,15 +297,8 @@ from System.IO import SeekOrigin
 
 # ---------------------------------------------------------------------------
 # Register the Syncfusion license
-SYNCFUSION_LICENSE_KEY = "Enter your license key here";
-if SYNCFUSION_LICENSE_KEY:
-    SyncfusionLicenseProvider.RegisterLicense(SYNCFUSION_LICENSE_KEY)
-else:
-    print(
-        "[app] SYNCFUSION_LICENSE_KEY is not set; Syncfusion controls "
-        "will show an evaluation watermark. Set the env var to remove it.",
-        flush=True,
-    )
+LICENSE_KEY = os.environ.get("SYNCFUSION_LICENSE_KEY", "")
+SyncfusionLicenseProvider.RegisterLicense(LICENSE_KEY)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -221,15 +343,19 @@ def _load_settings():
             except Exception as e:
                 print(f"[app] warning: failed to read {path}: {e}", flush=True)
     # Env-var overlay (only for non-empty values).
+    # Supports both AZURE_OPENAI_* and AZURE_OPENAI_*_NAME variants for flexibility.
     ai_overlay = {}
     for src, dst in (
-        ("AZURE_OPENAI_ENDPOINT",   "Endpoint"),
-        ("AZURE_OPENAI_API_KEY",    "ApiKey"),
-        ("AZURE_OPENAI_DEPLOYMENT", "DeploymentName"),
-        ("AZURE_OPENAI_API_VERSION","ApiVersion"),
+        ("AZURE_OPENAI_ENDPOINT",         "Endpoint"),
+        ("AZURE_OPENAI_API_KEY",          "ApiKey"),
+        ("AZURE_OPENAI_DEPLOYMENT_NAME",  "DeploymentName"),  # Azure App Service uses _NAME suffix
+        ("AZURE_OPENAI_DEPLOYMENT",       "DeploymentName"),  # Fallback for legacy naming
+        ("AZURE_OPENAI_API_VERSION",      "ApiVersion"),
     ):
-        if _os.environ.get(src):
-            ai_overlay[dst] = _os.environ[src]
+        val = _os.environ.get(src)
+        if val:
+            ai_overlay[dst] = val
+            break  # Use first match (prefer _NAME variant)
     if ai_overlay:
         env_overlay = {"AzureOpenAI": ai_overlay}
         settings = _deep_merge(settings, env_overlay)
@@ -250,6 +376,17 @@ AI_API_VERSION = (
 
 spreadEditor = SpreadsheetEditor()   # Spreadsheet wrapper (existing)
 docEditor    = DocumentEditor()      # DocumentEditor wrapper (new)
+
+# Validate that editors initialized correctly
+try:
+    if not hasattr(docEditor, 'Export'):
+        raise AttributeError("DocumentEditor missing Export method")
+    if not hasattr(spreadEditor, 'Open'):
+        raise AttributeError("SpreadsheetEditor missing Open method")
+    print("[app] ✓ DocumentEditor and SpreadsheetEditor initialized successfully", flush=True)
+except Exception as e:
+    print(f"[app] ✗ Editor initialization failed: {e}", flush=True)
+    raise
 
 # ---------------------------------------------------------------------------
 # Helpers — JSON I/O for the Studio (catalog + common fields).
@@ -546,6 +683,20 @@ def de_import_file_url():
                 json.dumps({"error": "fileUrl is required"}),
                 status=400, mimetype="application/json",
             )
+        # The frontend sends a relative URL ("Templates/x.docx") because
+        # DOCUMENT_EDITOR_BASE_URL is ''. .NET's WebClient can't resolve
+        # that, so map it to the local file under <Files>/Templates/.
+        if not re.match(r"^[a-z][a-z0-9+.-]*://", file_url, re.I):
+            rel = file_url.lstrip("/\\")
+            if rel.lower().startswith("templates/"):
+                rel = rel[len("templates/"):]
+            if ".." in rel:
+                return Response(
+                    json.dumps({"error": "invalid fileUrl"}),
+                    status=403, mimetype="application/json",
+                )
+            from pathlib import Path
+            file_url = Path(os.path.join(templates_root, rel)).resolve().as_uri()
         # The C# wrapper returns a 2-element object[]: [sfdt, string[]].
         result = docEditor.ImportFromFileUrl(file_url)
         sfdt = result[0]
@@ -678,8 +829,25 @@ def de_export():
             mimetype=content_type,
         )
     except Exception as e:
+        error_info = {
+            "error": str(e),
+            "trace": traceback.format_exc(),
+            "type": type(e).__name__,
+        }
+        
+        # Special handling for SkiaSharp/PDF export errors
+        error_msg = str(e).lower()
+        if "skia" in error_msg or "imageinf" in error_msg or "gdiplus" in error_msg:
+            error_info["hint"] = "SkiaSharp graphics library initialization failed"
+            if _sys.platform.startswith("linux"):
+                error_info["debug_command"] = "ldconfig -p | grep gdiplus"
+                error_info["debug_help"] = "Ensure Dockerfile installs libgdiplus and graphics dependencies"
+        elif "typeinitialized" in error_msg or "initializer" in error_msg:
+            error_info["hint"] = "Type initializer exception — likely missing graphics library or wrong license key"
+        
+        print(f"[app] Export error: {error_info['error']}", flush=True)
         return Response(
-            json.dumps({"error": str(e), "trace": traceback.format_exc()}),
+            json.dumps(error_info),
             status=500, mimetype="application/json",
         )
 
@@ -1089,11 +1257,41 @@ def serve_data(filename):
         return Response("Not found", status=404)
     return send_from_directory(data_root, filename, as_attachment=False)
 
+@app.route("/LicenseKey", methods=["GET"])
+def license_key():
+    # Lets the frontend register the key at runtime from the Azure app setting.
+    return Response(LICENSE_KEY, mimetype="text/plain")
 
 # ---------------------------------------------------------------------------
+# SPA Root Routes (serve index.html for both root and sub-path)
+# ============================================================================
+# Flask's send_static_file('index.html') returns the frontend's index.html,
+# which the browser then loads with script tags like:
+#   <script src="/vue-spreadsheet-docx-mail-merge/assets/main.js"></script>
+#   (when VITE_APP_BASE_PATH was set during the frontend build)
+#
+# When accessed at the sub-path, Flask's SPA routing must also catch requests
+# like /vue-spreadsheet-docx-mail-merge/ and return index.html. This allows
+# the Vue Router (or simple SPA history) to handle all routes at the correct
+# base path.
+# ============================================================================
 @app.route("/")
 def home():
-    return "Flask Web API for SpreadsheetEditor + DocumentEditor!"
+    return app.send_static_file("index.html")
+
+# If BASE_PATH is set (e.g., /vue-spreadsheet-docx-mail-merge),
+# also serve index.html at that path and its trailing-slash variant
+if BASE_PATH:
+    @app.route(f"{BASE_PATH}/", methods=["GET"])
+    def home_subpath_trailing():
+        return app.send_static_file("index.html")
+    
+    @app.route(f"{BASE_PATH}", methods=["GET"])
+    def home_subpath_notrailing():
+        # Redirect /vue-spreadsheet-docx-mail-merge → /vue-spreadsheet-docx-mail-merge/
+        # This ensures consistency with how the frontend's Vite build references assets
+        from flask import redirect
+        return redirect(f"{BASE_PATH}/", code=307)
 
 if __name__ == "__main__":
     # threaded=True so large uploads don't block the dev server
