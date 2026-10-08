@@ -59,6 +59,10 @@ Generate business documents by combining document templates with structured spre
 - Support for complex reports containing summaries and detailed schedules
 - Export merged documents to DOCX and PDF
 
+> **Note**
+>
+> After Mail Merge is executed, the generated document contains actual values rather than mail merge fields. To generate another report using updated spreadsheet data, use the **Load Word Template** option to reload the original template before executing Mail Merge again.
+
 ---
 
 ### AI Assist
@@ -134,12 +138,6 @@ python app.py
 or
 
 py app.py
-```
-
-Service URL:
-
-```text
-
 ```
 
 ---
