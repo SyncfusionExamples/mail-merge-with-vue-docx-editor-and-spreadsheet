@@ -787,31 +787,57 @@ def de_restrict_editing():
 @app.route("/api/DocumentEditor/Save", methods=["POST"])
 @app.route(f'{BASE_PATH}/api/DocumentEditor/Save', methods=["POST"])
 def de_save():
-    """
-    Mirror of DocumentEditorController.Save — accept a JSON body
-    { Content: "<SFDT>", FileName: "...", Format: "Docx" }, write
-    the resulting .docx to <Files>/Templates/<FileName>.docx
-    (FileMode.Create — replaces any existing file).
-    """
     try:
         body = request.get_json(force=True, silent=False) or {}
-        content  = body.get("Content", "") or ""
+
+        content = body.get("Content", "") or ""
         file_name = body.get("FileName", "") or ""
-        fmt       = body.get("Format", "") or "Docx"
+        fmt = body.get("Format", "") or "Docx"
+
         if not content:
             return Response(
                 json.dumps({"error": "Content is required"}),
-                status=400, mimetype="application/json",
+                status=400,
+                mimetype="application/json",
             )
-        docEditor.SaveToFile(content, file_name, fmt, templates_root)
-        # Mirror the C# controller's response: it returns void, the
-        # React/Vue client treats a 2xx as success.
-        return Response("", status=200, mimetype="application/json")
+
+        docx_bytes = docEditor.SaveToFile(
+            content,
+            file_name,
+            fmt,
+            templates_root
+        )
+
+        if not file_name:
+            file_name = "Document"
+
+        if not file_name.lower().endswith(".docx"):
+            file_name += ".docx"
+
+        file_path = os.path.join(
+            templates_root,
+            file_name
+        )
+
+        with open(file_path, "wb") as f:
+            f.write(bytearray(docx_bytes))
+
+        return Response(
+            "",
+            status=200,
+            mimetype="application/json"
+        )
+
     except Exception as e:
         return Response(
-            json.dumps({"error": str(e), "trace": traceback.format_exc()}),
-            status=500, mimetype="application/json",
+            json.dumps({
+                "error": str(e),
+                "trace": traceback.format_exc()
+            }),
+            status=500,
+            mimetype="application/json",
         )
+
 
 
 @app.route("/api/DocumentEditor/Export", methods=["POST"])
