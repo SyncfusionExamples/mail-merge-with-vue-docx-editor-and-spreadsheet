@@ -86,7 +86,8 @@ app.config['MAX_FORM_MEMORY_SIZE'] = 500 * 1024 * 1024 # 500 MB
 #   VITE_APP_BASE_PATH = '/vue-spreadsheet-docx-mail-merge/'
 #   This ensures all assets are referenced with the full path.
 # ============================================================================
-BASE_PATH = os.environ.get('BASE_PATH', '').rstrip('/')
+# BASE_PATH = os.environ.get('BASE_PATH', '').rstrip('/')
+BASE_PATH = os.environ.get('BASE_PATH', '/vue-spreadsheet-docx-mail-merge').rstrip('/')
 print(f"[app] BASE_PATH for sub-path routing: '{BASE_PATH}' (empty = root only)", flush=True)
 
 CORS(
@@ -278,9 +279,9 @@ _ASSEMBLY_NAMES = [
 for _name in _ASSEMBLY_NAMES:
     try:
         clr.AddReference(_name)
-        print(f"[app] ✓ Loaded {_name}", flush=True)
+        print(f"[app] [OK] Loaded {_name}", flush=True)
     except Exception as e:
-        print(f"[app] ✗ Failed to load {_name}: {e}", flush=True)
+        print(f"[app] [ERR] Failed to load {_name}: {e}", flush=True)
         # Critical assemblies for PDF export — fail fast
         if _name in ("SkiaSharp", "Syncfusion.DocIORenderer.Portable", "Syncfusion.Pdf.Portable"):
             print(f"[app] FATAL: {_name} is required for PDF export!", flush=True)
@@ -297,7 +298,8 @@ from System.IO import SeekOrigin
 
 # ---------------------------------------------------------------------------
 # Register the Syncfusion license
-LICENSE_KEY = os.environ.get("SYNCFUSION_LICENSE_KEY", "")
+# LICENSE_KEY = os.environ.get("SYNCFUSION_LICENSE_KEY", "")
+LICENSE_KEY = "NxYtFisQPR08Cit/VkN+XU9HcVRAXWFPY1J2WGBZb191flVPal9TT3RfQFtjQH1Td0BjUHpfdnRWTmtfVA==;NxYtGyMROh0gHDMgDk1jWU9FaFxFVmFJfFVrRGNEfF5gdVBMYVlbRXFUQF1hT35adUViXH5bc3dVRmBaWkdz;IAk8BicRIAEqCzQhAR8kAxMHIgRJXmZXf011Qmhbf1x2aVRGfV9RVHdaSFhrQ35VfUdjW3leeXdVR2VZWUZxWEddYUJ9Vg=="
 SyncfusionLicenseProvider.RegisterLicense(LICENSE_KEY)
 
 # ---------------------------------------------------------------------------
@@ -383,9 +385,9 @@ try:
         raise AttributeError("DocumentEditor missing Export method")
     if not hasattr(spreadEditor, 'Open'):
         raise AttributeError("SpreadsheetEditor missing Open method")
-    print("[app] ✓ DocumentEditor and SpreadsheetEditor initialized successfully", flush=True)
+    print("[app] [OK] DocumentEditor and SpreadsheetEditor initialized successfully", flush=True)
 except Exception as e:
-    print(f"[app] ✗ Editor initialization failed: {e}", flush=True)
+    print(f"[app] [ERR] Editor initialization failed: {e}", flush=True)
     raise
 
 # ---------------------------------------------------------------------------
@@ -441,6 +443,7 @@ def _utcnow_iso():
 # ============================================================================
 
 @app.route('/Open', methods=['POST'])
+@app.route(f'{BASE_PATH}/Open', methods=['POST'])
 def openExcel():
     if 'file' in request.files:
         files = request.files['file']
@@ -453,6 +456,7 @@ def openExcel():
         return ""
 
 @app.route('/Save', methods=['POST'])
+@app.route(f'{BASE_PATH}/Save', methods=['POST'])
 def saveExcel():
     try:
         # Extract parameters from form data
@@ -507,6 +511,7 @@ def saveExcel():
 
 
 @app.route('/OpenRentRoll', methods=['GET'])
+@app.route(f'{BASE_PATH}/OpenRentRoll', methods=['GET'])
 def open_rent_roll():
     """
     Server-side file open flow. Reads the SHARED_DATA_FILE that the
@@ -540,6 +545,7 @@ def open_rent_roll():
 
 
 @app.route('/SaveRentRoll', methods=['POST'])
+@app.route(f'{BASE_PATH}/SaveRentRoll', methods=['POST'])
 def save_rent_roll():
     """
     Save the shared Excel data file in place. The SpreadsheetComponent
@@ -612,6 +618,7 @@ def save_rent_roll():
 # ============================================================================
 
 @app.route("/api/DocumentEditor/Import", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/Import', methods=["POST"])
 def de_import():
     """
     Mirror of DocumentEditorController.Import — accept a multipart
@@ -668,6 +675,7 @@ def de_import():
 
 
 @app.route("/api/DocumentEditor/ImportFileURL", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/ImportFileURL', methods=["POST"])
 def de_import_file_url():
     """
     Mirror of DocumentEditorController.ImportFileURL. The Syncfusion
@@ -688,6 +696,9 @@ def de_import_file_url():
         # that, so map it to the local file under <Files>/Templates/.
         if not re.match(r"^[a-z][a-z0-9+.-]*://", file_url, re.I):
             rel = file_url.lstrip("/\\")
+            bp = BASE_PATH.strip("/")
+            if bp and rel.lower().startswith(bp.lower() + "/"):
+                rel = rel[len(bp) + 1:]
             if rel.lower().startswith("templates/"):
                 rel = rel[len("templates/"):]
             if ".." in rel:
@@ -713,6 +724,7 @@ def de_import_file_url():
 
 
 @app.route("/api/DocumentEditor/SystemClipboard", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/SystemClipboard', methods=["POST"])
 def de_system_clipboard():
     """
     Mirror of DocumentEditorController.SystemClipboard — convert
@@ -751,6 +763,7 @@ def de_system_clipboard():
 
 
 @app.route("/api/DocumentEditor/RestrictEditing", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/RestrictEditing', methods=["POST"])
 def de_restrict_editing():
     """
     Mirror of DocumentEditorController.RestrictEditing — body
@@ -772,6 +785,7 @@ def de_restrict_editing():
 
 
 @app.route("/api/DocumentEditor/Save", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/Save', methods=["POST"])
 def de_save():
     """
     Mirror of DocumentEditorController.Save — accept a JSON body
@@ -801,6 +815,7 @@ def de_save():
 
 
 @app.route("/api/DocumentEditor/Export", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/Export', methods=["POST"])
 def de_export():
     """
     Mirror of DocumentEditorController.Export — accept a JSON body
@@ -853,6 +868,7 @@ def de_export():
 
 
 @app.route("/api/DocumentEditor/MailMerge", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/MailMerge', methods=["POST"])
 def de_mail_merge():
     """
     Mirror of DocumentEditorController.MailMerge — body
@@ -885,6 +901,7 @@ def de_mail_merge():
 # generate on download, but absoluteDocxUrl() in studioStorage.js handles
 # both.
 @app.route("/Templates/<path:filename>", methods=["GET"])
+@app.route(f'{BASE_PATH}/Templates/<path:filename>', methods=["GET"])
 def serve_template(filename):
     """Serve a .docx template from <Files>/Templates/."""
     # Path-traversal guard.
@@ -957,6 +974,7 @@ def _call_azure_openai(messages, model=None):
 
 
 @app.route("/api/DocumentEditor/Process", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/DocumentEditor/Process', methods=["POST"])
 def ai_process():
     """
     Mirror of AIController.Process — body
@@ -1006,6 +1024,7 @@ def ai_process():
 # ============================================================================
 
 @app.route("/api/studio/catalog", methods=["GET"])
+@app.route(f'{BASE_PATH}/api/studio/catalog', methods=["GET"])
 def studio_catalog_get():
     catalog = _read_json_or(CATALOG_FILE, [])
     if not isinstance(catalog, list):
@@ -1017,6 +1036,7 @@ def studio_catalog_get():
 
 
 @app.route("/api/studio/catalog", methods=["PUT"])
+@app.route(f'{BASE_PATH}/api/studio/catalog', methods=["PUT"])
 def studio_catalog_put():
     try:
         body = request.get_json(force=True, silent=False)
@@ -1038,6 +1058,7 @@ def studio_catalog_put():
 
 
 @app.route("/api/studio/common-fields", methods=["GET"])
+@app.route(f'{BASE_PATH}/api/studio/common-fields', methods=["GET"])
 def studio_common_fields_get():
     obj = _read_json_or(COMMON_FILE, {"fields": {}})
     if not isinstance(obj, dict) or "fields" not in obj:
@@ -1049,6 +1070,7 @@ def studio_common_fields_get():
 
 
 @app.route("/api/studio/mergefield", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/studio/mergefield', methods=["POST"])
 def studio_mergefield_post():
     """
     Add a custom merge field. Mirrors the C# controller's behavior:
@@ -1149,6 +1171,7 @@ def studio_mergefield_post():
 
 
 @app.route("/api/studio/upload", methods=["POST"])
+@app.route(f'{BASE_PATH}/api/studio/upload', methods=["POST"])
 def studio_upload():
     """
     Upload a new .docx template. Mirrors the C# controller:
@@ -1207,6 +1230,7 @@ def studio_upload():
 
 
 @app.route("/api/studio/template/<template_id>", methods=["DELETE"])
+@app.route(f'{BASE_PATH}/api/studio/template/<template_id>', methods=["DELETE"])
 def studio_template_delete(template_id):
     if not SAFE_ID_RE.match(template_id):
         return Response(
@@ -1248,6 +1272,7 @@ def studio_template_delete(template_id):
 # Mirrors wwwroot/Data in the C# project so the client can fetch them
 # directly as plain JSON. Useful as a debugging escape hatch.
 @app.route("/Data/<path:filename>", methods=["GET"])
+@app.route(f'{BASE_PATH}/Data/<path:filename>', methods=["GET"])
 def serve_data(filename):
     """Serve catalog / common-fields JSON for debugging."""
     if ".." in filename or filename.startswith("/"):
@@ -1258,6 +1283,7 @@ def serve_data(filename):
     return send_from_directory(data_root, filename, as_attachment=False)
 
 @app.route("/LicenseKey", methods=["GET"])
+@app.route(f'{BASE_PATH}/LicenseKey', methods=["GET"])
 def license_key():
     # Lets the frontend register the key at runtime from the Azure app setting.
     return Response(LICENSE_KEY, mimetype="text/plain")
@@ -1292,6 +1318,58 @@ if BASE_PATH:
         # This ensures consistency with how the frontend's Vite build references assets
         from flask import redirect
         return redirect(f"{BASE_PATH}/", code=307)
+    
+    # ========================================================================
+    # Serve static assets from the base path
+    # ========================================================================
+    # When VITE_APP_BASE_PATH is set, Vite builds assets to be served from:
+    #   /vue-spreadsheet-docx-mail-merge/assets/main.js
+    # 
+    # This route catches ALL requests to /vue-spreadsheet-docx-mail-merge/<path>
+    # and serves the corresponding static file from frontend/dist/<path>
+    # ========================================================================
+    @app.route(f"{BASE_PATH}/<path:filepath>", methods=["GET"])
+    def serve_static_subpath(filepath):
+        """
+        Serve static files (CSS, JS, images, etc.) from the sub-path.
+        
+        Examples:
+          /vue-spreadsheet-docx-mail-merge/assets/main.js → frontend/dist/assets/main.js
+          /vue-spreadsheet-docx-mail-merge/assets/main.css → frontend/dist/assets/main.css
+          /vue-spreadsheet-docx-mail-merge/favicon.ico → frontend/dist/favicon.ico
+        """
+        # Attempt to serve the file from the static directory
+        try:
+            return app.send_static_file(filepath)
+        except:
+            # If file doesn't exist, return index.html (for SPA routing)
+            # This allows Vue Router to handle navigation
+            return app.send_static_file("index.html")
+
+    # ========================================================================
+    # Architecture: All API endpoints are at ROOT paths only
+    # ========================================================================
+    # The frontend uses absolute paths (starting with /) for all API calls:
+    # - fetch('/OpenRentRoll')
+    # - fetch('/api/DocumentEditor/MailMerge')
+    # - fetch('/LicenseKey')
+    # 
+    # The SPA base path (/vue-spreadsheet-docx-mail-merge/) is handled by:
+    # - Vite build time: VITE_APP_BASE_PATH
+    # - Docker build: --build-arg VITE_APP_BASE_PATH
+    # - Load balancer: URL rewriting (e.g., /vue-.../* → /)
+    #
+    # This ensures:
+    # ✅ Works locally at root (/)
+    # ✅ Works locally at sub-path (/vue-spreadsheet-.../)
+    # ✅ Works on Azure at root
+    # ✅ Works on Azure at sub-path (with LB rewrite)
+    # ✅ Works with GCP Load Balancer path routing
+    #
+    # No sub-path route duplication needed anymore!
+    # ========================================================================
+    print(f"[app] Using clean architecture: All API endpoints at root paths", flush=True)
+    print(f"[app] SPA served at: {BASE_PATH} (via Vite base path)", flush=True)
 
 if __name__ == "__main__":
     # threaded=True so large uploads don't block the dev server

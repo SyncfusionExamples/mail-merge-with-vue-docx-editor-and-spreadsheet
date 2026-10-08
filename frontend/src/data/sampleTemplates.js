@@ -5,11 +5,19 @@
 // runtime. Everything that needs to call the backend imports from here
 // so the host/port lives in one place.
 
-export const DOCUMENT_EDITOR_BASE_URL = '';
+import { getBasePath } from '../utils/apiPaths.js';
+
+const basePath = getBasePath();
+
+// In multi-app service deployments, include the base path
+// In development, base path is empty and Vite proxy handles routing
+export const DOCUMENT_EDITOR_BASE_URL = basePath;
 
 // Full service URL the Syncfusion DocumentEditor container needs in its
 // `serviceUrl` prop (note trailing slash — that's what the editor expects).
-export const DOCUMENT_EDITOR_SERVICE_URL = 'api/DocumentEditor/';
+// Includes base path prefix for correct routing in multi-app service setup.
+export const DOCUMENT_EDITOR_SERVICE_URL = 
+  basePath ? `${basePath}/api/DocumentEditor/` : '/api/DocumentEditor/';
 
 // The .docx loaded into the homepage editor on startup. Must exist under
 // <repo>/Files/Templates/ (served by Flask at /Templates/<file>).
@@ -23,7 +31,8 @@ export const DEFAULT_TEMPLATE_DOCX = 'Property Appraisal Report Template.docx';
 // AZURE_OPENAI_DEPLOYMENT). The endpoint returns 500 with instructions
 // when the env vars are not set.
 // ---------------------------------------------------------------------------
-export const AI_API_BASE = 'api/DocumentEditor';
+export const AI_API_BASE = 
+  basePath ? `${basePath}/api/DocumentEditor` : '/api/DocumentEditor';
 
 // ---------------------------------------------------------------------------
 // Merge fields are now user-driven. Use the "Mail Merge" tab in the

@@ -21,7 +21,7 @@ export function absoluteDocxUrl(docxUrl) {
   if (docxUrl.startsWith('/')) {
     return `${DOCUMENT_EDITOR_BASE_URL}${docxUrl}`;
   }
-  return `${DOCUMENT_EDITOR_BASE_URL}Templates/${docxUrl}`;
+  return `${DOCUMENT_EDITOR_BASE_URL}/Templates/${docxUrl}`;
 }
 
 // Import a server-side .docx into SFDT via ImportFileURL. Returns

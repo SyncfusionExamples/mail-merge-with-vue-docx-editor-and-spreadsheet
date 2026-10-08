@@ -1,10 +1,20 @@
 # ---- 1. Build Vue frontend ----
 FROM node:20-alpine AS frontend
+
+# Build argument for SPA base path
+# Usage: docker build --build-arg VITE_APP_BASE_PATH='/vue-spreadsheet-docx-mail-merge/' ...
+# Default: Empty string (serves at root '/')
+ARG VITE_APP_BASE_PATH=''
+
 WORKDIR /fe
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
-RUN npm run build
+
+# Build Vue app with the base path
+# The base path affects asset URLs and Vue Router
+# Does NOT affect API endpoint paths (those remain at root)
+RUN VITE_APP_BASE_PATH=$VITE_APP_BASE_PATH npm run build
 
 # ---- 2. Publish .NET wrapper ----
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet
@@ -41,8 +51,7 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 
 # SkiaSharp environment variables for proper native library loading
 # Include both system graphics paths AND the publish folder (which has libSkiaSharp.so)
-# Use ${LD_LIBRARY_PATH} (shell syntax) not $LD_LIBRARY_PATH (Docker/PowerShell syntax)
-ENV LD_LIBRARY_PATH=/app/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/runtimes/linux-x64/native:/app/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/app/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish/runtimes/linux-x64/native:/app/NETStandardWrapperLibrary/WebServiceLibrary/bin/Release/net10.0/publish:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu
 ENV SKIASHARP_NATIVE_DIR=/usr/lib/x86_64-linux-gnu
 
 WORKDIR /app
